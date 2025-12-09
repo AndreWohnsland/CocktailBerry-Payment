@@ -7,17 +7,19 @@ from src.frontend.data import api_client
 HTTP_OK = 200
 HTTP_CREATED = 201
 HTTP_NO_CONTENT = 204
+NFC_SCAN_ITERATIONS = 20  # 0.5s each = 10 seconds total
+NFC_SCAN_DELAY = 0.5
 
 
 def _scan_nfc_card() -> str | None:
     """Scan NFC card with spinner."""
     with st.spinner("Waiting for NFC card..."):
-        for _ in range(20):  # Poll for 10 seconds
+        for _ in range(NFC_SCAN_ITERATIONS):
             nfc_id = api_client.fetch_nfc_id()
             if nfc_id:
                 st.success(f"✅ Card scanned: {nfc_id}")
                 return nfc_id
-            time.sleep(0.5)
+            time.sleep(NFC_SCAN_DELAY)
         st.error("No card detected. Please try again.")
         return None
 
