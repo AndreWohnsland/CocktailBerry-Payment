@@ -2,10 +2,9 @@ from typing import Any
 
 import requests
 
+from src.frontend.constants import HTTP_CREATED, HTTP_NO_CONTENT, HTTP_OK
+
 API_URL = "http://localhost:8000"
-HTTP_OK = 200
-HTTP_CREATED = 201
-HTTP_NO_CONTENT = 204
 
 
 def fetch_nfc_id() -> str | None:

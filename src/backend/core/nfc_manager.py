@@ -31,10 +31,7 @@ class NFCManager:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
                     cls._instance.__init__()
-                    if HAS_NFC_HARDWARE:
-                        cls._instance._reader = RFIDReader()
-                    else:
-                        cls._instance._reader = RFIDReader()  # Use mock
+                    cls._instance._reader = RFIDReader()  # Works with both real and mock
         return cls._instance
 
     def start(self) -> None:

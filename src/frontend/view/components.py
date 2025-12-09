@@ -2,13 +2,8 @@ import time
 
 import streamlit as st
 
+from src.frontend.constants import NFC_SCAN_DELAY, NFC_SCAN_ITERATIONS
 from src.frontend.data import api_client
-
-HTTP_OK = 200
-HTTP_CREATED = 201
-HTTP_NO_CONTENT = 204
-NFC_SCAN_ITERATIONS = 20  # 0.5s each = 10 seconds total
-NFC_SCAN_DELAY = 0.5
 
 
 def _scan_nfc_card() -> str | None:

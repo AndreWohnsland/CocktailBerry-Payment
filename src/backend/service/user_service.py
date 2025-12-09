@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from src.backend.constants import MIN_BALANCE
 from src.backend.models.schemas import UserCreate, UserUpdate
 from src.backend.models.user import User
 
@@ -61,7 +62,18 @@ def update_balance(db: Session, nfc_id: str, amount: float) -> User:
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    db_user.balance += amount
+    new_balance = db_user.balance + amount
+    # Prevent extreme negative balances for data integrity
+    if new_balance < MIN_BALANCE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Balance cannot go below €{MIN_BALANCE:.2f}. "
+                f"Current: {db_user.balance:.2f}, Requested: {amount:.2f}"
+            ),
+        )
+
+    db_user.balance = new_balance
     db.commit()
     db.refresh(db_user)
     return db_user
