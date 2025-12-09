@@ -1,0 +1,248 @@
+"""Tests for user service layer."""
+import pytest
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+
+from src.backend.constants import MIN_BALANCE
+from src.backend.models.schemas import UserCreate, UserUpdate
+from src.backend.models.user import User
+from src.backend.service import user_service
+
+
+class TestGetUser:
+    """Tests for getting users."""
+
+    def test_get_user_by_nfc_success(self, db_session: Session, sample_user: User) -> None:
+        """Test getting a user by NFC ID."""
+        user = user_service.get_user_by_nfc(db_session, sample_user.nfc_id)
+        assert user is not None
+        assert user.nfc_id == sample_user.nfc_id
+        assert user.name == sample_user.name
+
+    def test_get_user_by_nfc_not_found(self, db_session: Session) -> None:
+        """Test getting a non-existent user by NFC ID."""
+        user = user_service.get_user_by_nfc(db_session, "NONEXISTENT")
+        assert user is None
+
+    def test_get_user_by_id_success(self, db_session: Session, sample_user: User) -> None:
+        """Test getting a user by ID."""
+        user = user_service.get_user_by_id(db_session, sample_user.id)
+        assert user is not None
+        assert user.id == sample_user.id
+        assert user.name == sample_user.name
+
+    def test_get_users_list(self, db_session: Session, sample_user: User, sample_minor: User) -> None:
+        """Test getting list of users."""
+        users = user_service.get_users(db_session)
+        assert len(users) >= 2
+        nfc_ids = [u.nfc_id for u in users]
+        assert sample_user.nfc_id in nfc_ids
+        assert sample_minor.nfc_id in nfc_ids
+
+    def test_get_users_with_pagination(self, db_session: Session, sample_user: User) -> None:
+        """Test getting users with pagination."""
+        users = user_service.get_users(db_session, skip=0, limit=1)
+        assert len(users) == 1
+
+
+class TestCreateUser:
+    """Tests for creating users."""
+
+    def test_create_user_success(self, db_session: Session) -> None:
+        """Test creating a new user."""
+        user_create = UserCreate(nfc_id="NEW123", name="New User", is_adult=True)
+        user = user_service.create_user(db_session, user_create)
+
+        assert user.nfc_id == "NEW123"
+        assert user.name == "New User"
+        assert user.is_adult is True
+        assert user.balance == 0.0
+
+    def test_create_user_duplicate_nfc(self, db_session: Session, sample_user: User) -> None:
+        """Test creating a user with duplicate NFC ID raises exception."""
+        user_create = UserCreate(nfc_id=sample_user.nfc_id, name="Duplicate", is_adult=False)
+
+        with pytest.raises(HTTPException) as exc_info:
+            user_service.create_user(db_session, user_create)
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert "already exists" in exc_info.value.detail
+
+    def test_create_user_minor(self, db_session: Session) -> None:
+        """Test creating a minor user."""
+        user_create = UserCreate(nfc_id="MINOR789", name="Young User", is_adult=False)
+        user = user_service.create_user(db_session, user_create)
+
+        assert user.is_adult is False
+        assert user.balance == 0.0
+
+
+class TestUpdateUser:
+    """Tests for updating users."""
+
+    def test_update_user_name(self, db_session: Session, sample_user: User) -> None:
+        """Test updating user name."""
+        user_update = UserUpdate(name="Updated Name")
+        user = user_service.update_user(db_session, sample_user.nfc_id, user_update)
+
+        assert user.name == "Updated Name"
+        assert user.is_adult == sample_user.is_adult  # Unchanged
+
+    def test_update_user_adult_status(self, db_session: Session, sample_minor: User) -> None:
+        """Test updating user adult status."""
+        user_update = UserUpdate(is_adult=True)
+        user = user_service.update_user(db_session, sample_minor.nfc_id, user_update)
+
+        assert user.is_adult is True
+        assert user.name == sample_minor.name  # Unchanged
+
+    def test_update_user_balance(self, db_session: Session, sample_user: User) -> None:
+        """Test updating user balance directly."""
+        user_update = UserUpdate(balance=100.0)
+        user = user_service.update_user(db_session, sample_user.nfc_id, user_update)
+
+        assert user.balance == 100.0
+
+    def test_update_user_not_found(self, db_session: Session) -> None:
+        """Test updating non-existent user raises exception."""
+        user_update = UserUpdate(name="Ghost")
+
+        with pytest.raises(HTTPException) as exc_info:
+            user_service.update_user(db_session, "NONEXISTENT", user_update)
+
+        assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_update_user_multiple_fields(self, db_session: Session, sample_user: User) -> None:
+        """Test updating multiple user fields at once."""
+        user_update = UserUpdate(name="New Name", is_adult=False, balance=75.0)
+        user = user_service.update_user(db_session, sample_user.nfc_id, user_update)
+
+        assert user.name == "New Name"
+        assert user.is_adult is False
+        assert user.balance == 75.0
+
+
+class TestDeleteUser:
+    """Tests for deleting users."""
+
+    def test_delete_user_success(self, db_session: Session, sample_user: User) -> None:
+        """Test deleting a user."""
+        user_service.delete_user(db_session, sample_user.nfc_id)
+
+        # Verify user is deleted
+        user = user_service.get_user_by_nfc(db_session, sample_user.nfc_id)
+        assert user is None
+
+    def test_delete_user_not_found(self, db_session: Session) -> None:
+        """Test deleting non-existent user raises exception."""
+        with pytest.raises(HTTPException) as exc_info:
+            user_service.delete_user(db_session, "NONEXISTENT")
+
+        assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestUpdateBalance:
+    """Tests for updating user balance."""
+
+    def test_update_balance_add(self, db_session: Session, sample_user: User) -> None:
+        """Test adding to user balance."""
+        original_balance = sample_user.balance
+        user = user_service.update_balance(db_session, sample_user.nfc_id, 25.0)
+
+        assert user.balance == original_balance + 25.0
+
+    def test_update_balance_subtract(self, db_session: Session, sample_user: User) -> None:
+        """Test subtracting from user balance."""
+        original_balance = sample_user.balance
+        user = user_service.update_balance(db_session, sample_user.nfc_id, -10.0)
+
+        assert user.balance == original_balance - 10.0
+
+    def test_update_balance_below_minimum(self, db_session: Session, sample_user: User) -> None:
+        """Test updating balance below minimum raises exception."""
+        # Try to subtract enough to go below MIN_BALANCE
+        amount = sample_user.balance + abs(MIN_BALANCE) + 100.0
+
+        with pytest.raises(HTTPException) as exc_info:
+            user_service.update_balance(db_session, sample_user.nfc_id, -amount)
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert "cannot go below" in exc_info.value.detail
+
+    def test_update_balance_to_negative_allowed(self, db_session: Session, sample_user: User) -> None:
+        """Test that negative balance is allowed within limits."""
+        user = user_service.update_balance(db_session, sample_user.nfc_id, -60.0)
+
+        assert user.balance < 0
+        assert user.balance > MIN_BALANCE
+
+    def test_update_balance_user_not_found(self, db_session: Session) -> None:
+        """Test updating balance for non-existent user raises exception."""
+        with pytest.raises(HTTPException) as exc_info:
+            user_service.update_balance(db_session, "NONEXISTENT", 10.0)
+
+        assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestBookCocktail:
+    """Tests for booking cocktails."""
+
+    def test_book_cocktail_success(self, db_session: Session, sample_user: User) -> None:
+        """Test booking a cocktail successfully."""
+        original_balance = sample_user.balance
+        amount = 5.50
+
+        user = user_service.book_cocktail(db_session, sample_user.nfc_id, amount, is_alcoholic=False)
+
+        assert user.balance == original_balance - amount
+
+    def test_book_alcoholic_cocktail_adult(self, db_session: Session, sample_user: User) -> None:
+        """Test adult can book alcoholic cocktail."""
+        original_balance = sample_user.balance
+        amount = 7.50
+
+        user = user_service.book_cocktail(db_session, sample_user.nfc_id, amount, is_alcoholic=True)
+
+        assert user.balance == original_balance - amount
+
+    def test_book_alcoholic_cocktail_minor(self, db_session: Session, sample_minor: User) -> None:
+        """Test minor cannot book alcoholic cocktail."""
+        with pytest.raises(HTTPException) as exc_info:
+            user_service.book_cocktail(db_session, sample_minor.nfc_id, 5.0, is_alcoholic=True)
+
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
+        assert "underage" in exc_info.value.detail.lower()
+
+    def test_book_cocktail_insufficient_balance(self, db_session: Session, sample_user: User) -> None:
+        """Test booking cocktail with insufficient balance raises exception."""
+        amount = sample_user.balance + 100.0
+
+        with pytest.raises(HTTPException) as exc_info:
+            user_service.book_cocktail(db_session, sample_user.nfc_id, amount, is_alcoholic=False)
+
+        assert exc_info.value.status_code == status.HTTP_402_PAYMENT_REQUIRED
+        assert "Insufficient balance" in exc_info.value.detail
+
+    def test_book_cocktail_user_not_found(self, db_session: Session) -> None:
+        """Test booking cocktail for non-existent user raises exception."""
+        with pytest.raises(HTTPException) as exc_info:
+            user_service.book_cocktail(db_session, "NONEXISTENT", 5.0, is_alcoholic=False)
+
+        assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_book_non_alcoholic_cocktail_minor(self, db_session: Session, sample_minor: User) -> None:
+        """Test minor can book non-alcoholic cocktail."""
+        original_balance = sample_minor.balance
+        amount = 4.50
+
+        user = user_service.book_cocktail(db_session, sample_minor.nfc_id, amount, is_alcoholic=False)
+
+        assert user.balance == original_balance - amount
+
+    def test_book_cocktail_exact_balance(self, db_session: Session, sample_user: User) -> None:
+        """Test booking cocktail with exact balance."""
+        amount = sample_user.balance
+
+        user = user_service.book_cocktail(db_session, sample_user.nfc_id, amount, is_alcoholic=False)
+
+        assert user.balance == 0.0

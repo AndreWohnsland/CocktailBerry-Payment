@@ -141,6 +141,7 @@ cocktailberry-payment/
 │   └── frontend/          # Streamlit application
 │       ├── view/          # UI components
 │       └── data/          # API client
+├── tests/                 # Pytest tests with in-memory DB
 ├── docs/                  # Documentation
 ├── main.py                # Application entrypoint
 └── pyproject.toml         # Project configuration
@@ -150,15 +151,27 @@ cocktailberry-payment/
 
 ### Running Tests
 
-Tests are located in `/tmp/test_*.py` files for quick validation:
+The project uses pytest for testing. Tests are located in the `tests/` directory and use an in-memory SQLite database.
 
 ```bash
-# Test database operations
-PYTHONPATH=. python3 /tmp/test_components.py
+# Run all tests
+uv run pytest
 
-# Test API endpoints
-PYTHONPATH=. python3 /tmp/test_api.py
+# Run with verbose output
+uv run pytest -v
+
+# Run specific test file
+uv run pytest tests/test_user_service.py
+
+# Run with coverage
+uv run pytest --cov=src
 ```
+
+**Test Structure:**
+- `tests/conftest.py` - Shared fixtures including in-memory database setup
+- `tests/test_user_service.py` - Service layer tests (27 tests covering all user operations)
+
+All tests mock the NFC reader and use dependency injection with in-memory databases, so no hardware is required.
 
 ### Linting
 
