@@ -2,7 +2,7 @@ import time
 
 import streamlit as st
 
-from src.frontend.constants import NFC_SCAN_DELAY, NFC_SCAN_ITERATIONS
+from src.frontend.constants import MAX_BALANCE, MIN_BALANCE, NFC_SCAN_DELAY, NFC_SCAN_ITERATIONS
 from src.frontend.data import api_client
 
 
@@ -157,8 +157,8 @@ def balance_topup_tab() -> None:
             st.subheader("Update Balance")
             amount = st.number_input(
                 "Amount (negative to subtract)",
-                min_value=-1000.0,
-                max_value=1000.0,
+                min_value=MIN_BALANCE,
+                max_value=MAX_BALANCE,
                 value=10.0,
                 step=0.50,
             )

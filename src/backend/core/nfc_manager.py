@@ -19,19 +19,21 @@ except (ImportError, RuntimeError):
 class NFCManager:
     _instance: ClassVar["NFCManager | None"] = None
     _lock: ClassVar[Lock] = Lock()
+    _initialized: bool = False
 
     def __init__(self) -> None:
         """Initialize NFC manager instance variables."""
-        self._latest_nfc_id: str | None = None
-        self._callbacks: list[Callable[[str], None]] = []
+        if not self._initialized:
+            self._latest_nfc_id: str | None = None
+            self._callbacks: list[Callable[[str], None]] = []
+            self._reader = RFIDReader()  # Works with both real and mock
+            self._initialized = True
 
     def __new__(cls) -> "NFCManager":
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
-                    cls._instance.__init__()
-                    cls._instance._reader = RFIDReader()  # Works with both real and mock
         return cls._instance
 
     def start(self) -> None:

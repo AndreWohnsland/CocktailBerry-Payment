@@ -11,3 +11,4 @@ NFC_SCAN_DELAY = 0.5
 
 # Balance limits
 MIN_BALANCE = -1000.0  # Minimum allowed balance for data integrity
+MAX_BALANCE = 1000.0  # Maximum balance for input validation
