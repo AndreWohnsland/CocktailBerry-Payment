@@ -21,35 +21,174 @@ Detailed information, installation steps and SetUp can be found at the [Official
 
 Payment Service for [CocktailBerry](https://github.com/AndreWohnsland/CocktailBerry).
 This service enables payment options for CocktailBerry, allowing users to integrate payment and balance management over NFC.
-It is the central management point for service personal to initialize and manage user accounts, balances and transactions.
-
-## Setup
-
-TBD.
+It is the central management point for service personnel to initialize and manage user accounts, balances and transactions.
 
 ## Features
 
-TBD.
+- **FastAPI Backend**: RESTful API for user and balance management
+  - User CRUD operations (Create, Read, Update, Delete)
+  - Balance top-up and deduction
+  - Cocktail booking with age verification and balance checks
+  - NFC card scanning integration
+  
+- **Streamlit Frontend**: User-friendly web interface for service personnel
+  - User Management: Create, edit, and delete users via NFC
+  - Balance Top-up: Add or subtract balance from user accounts
+  - Real-time NFC scanning
+  
+- **NFC Integration**: Automatic card scanning at program start
+  - Callbacks for real-time card detection
+  - Graceful fallback when hardware is not available
+  
+- **Single Entrypoint**: Both API and frontend run from one command
+  - FastAPI runs on port 8000
+  - Streamlit runs on port 8501
+  
+- **SQLite Database**: Lightweight, file-based storage
+  - User profiles with NFC ID, name, balance, and age status
+  - Located at `~/.cocktailberry/payment.db`
 
-## Development
+## Setup
 
-This project uses [uv](https://docs.astral.sh/uv/) to manage all its dependencies.
-To get started, you need to install uv and then install the dependencies.
+### Prerequisites
 
+- Python >= 3.13
+- [uv](https://docs.astral.sh/uv/) package manager
+- NFC reader hardware (optional - software works without it for testing)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/AndreWohnsland/CocktailBerry-Payment.git
+cd CocktailBerry-Payment
+```
+
+2. Install dependencies:
 ```bash
 uv sync
 ```
 
-We also use pre-commits to check the code style and run some tests before every commit.
-You can install them with:
-
+3. (Optional) Install pre-commit hooks:
 ```bash
 uv run pre-commit install --install-hooks
 ```
 
-This will install all dependencies and you can start developing.
-Then just run:
+### Running the Application
+
+Start both the API and frontend with a single command:
 
 ```bash
 uv run main.py
 ```
+
+This will start:
+- **FastAPI Backend** at http://localhost:8000
+- **Streamlit Frontend** at http://localhost:8501
+
+The API documentation is available at http://localhost:8000/docs
+
+## Usage
+
+### Service Personnel Interface (Streamlit)
+
+1. Open http://localhost:8501 in your browser
+2. Choose between two tabs:
+   - **User Management**: Create, edit, or delete users
+   - **Balance Top-Up**: Add or subtract balance from user accounts
+3. Click "Scan NFC Card" to read a user's card
+4. Follow the on-screen prompts to complete your action
+
+### API Integration
+
+The API can be integrated with the CocktailBerry main application for cocktail booking:
+
+```python
+import requests
+
+# Book a cocktail
+response = requests.post(
+    "http://localhost:8000/api/cocktails/book",
+    json={
+        "nfc_id": "A1B2C3D4",
+        "amount": 5.50,
+        "is_alcoholic": True
+    }
+)
+
+if response.status_code == 200:
+    user = response.json()
+    print(f"Booking successful! New balance: €{user['balance']:.2f}")
+elif response.status_code == 403:
+    print("Error: User is underage")
+elif response.status_code == 402:
+    print("Error: Insufficient balance")
+```
+
+See [API Documentation](docs/API.md) for complete endpoint details.
+
+## Project Structure
+
+```
+cocktailberry-payment/
+├── src/
+│   ├── backend/           # FastAPI application
+│   │   ├── api/           # API routes and endpoints
+│   │   ├── core/          # NFC integration and config
+│   │   ├── models/        # Database and Pydantic models
+│   │   ├── services/      # Business logic
+│   │   └── db/            # Database connection
+│   └── frontend/          # Streamlit application
+│       ├── view/          # UI components
+│       └── data/          # API client
+├── docs/                  # Documentation
+├── main.py                # Application entrypoint
+└── pyproject.toml         # Project configuration
+```
+
+## Development
+
+### Running Tests
+
+Tests are located in `/tmp/test_*.py` files for quick validation:
+
+```bash
+# Test database operations
+PYTHONPATH=. python3 /tmp/test_components.py
+
+# Test API endpoints
+PYTHONPATH=. python3 /tmp/test_api.py
+```
+
+### Linting
+
+```bash
+uv run ruff check .
+```
+
+### Type Checking
+
+```bash
+uv run mypy .
+```
+
+## NFC Hardware
+
+The application supports USB-connected PC/SC NFC readers. When hardware is not available, the application runs in fallback mode where NFC scanning returns `null`.
+
+For production use with real NFC hardware, ensure:
+- The `pyscard` library is installed
+- PC/SC drivers are available on your system
+- Your NFC reader is connected and recognized
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run linting and tests
+5. Submit a pull request
+
+## License
+
+See [LICENSE](LICENSE) file for details.
