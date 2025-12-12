@@ -1,11 +1,12 @@
 # main.py
 
-from nicegui import ui, app
 from store import UserStore
 from tabs.create_tab import build_create_tab
 from tabs.manage_tab import build_manage_tab
 from tabs.topup_tab import build_topup_tab
-from theme import apply_theme, Styles
+from theme import Styles, apply_theme
+
+from nicegui import app, ui
 
 
 def main():
@@ -18,9 +19,7 @@ def main():
     with ui.column().classes("w-full max-w-2xl mx-auto mt-10"):
         with ui.row().classes("items-center justify-center w-full mb-2"):
             ui.icon("local_bar", size="2.5rem").classes("text-secondary")
-            ui.label("CocktailBerry Payment Management").classes(
-                f"text-3xl {Styles.HEADER}"
-            )
+            ui.label("CocktailBerry Payment Management").classes(f"text-3xl {Styles.HEADER}")
 
         with ui.tabs().classes("w-full") as tabs:
             tab_topup = ui.tab("Top-Up", icon="payments").classes("px-12")
@@ -32,7 +31,7 @@ def main():
             build_create_tab(tab_create, store)
             build_manage_tab(tab_manage, store)
 
-    ui.run(title="CocktailBerry Payment", favicon="🍹")
+    ui.run(title="CocktailBerry Payment", favicon="static/favicon.ico")
 
 
 main()

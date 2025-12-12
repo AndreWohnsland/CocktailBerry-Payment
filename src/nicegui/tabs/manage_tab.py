@@ -1,9 +1,9 @@
 # tabs/manage_tab.py
 
-from nicegui import ui
 from store import UserStore
-from services import mock_nfc_scan
 from theme import Styles
+
+from nicegui import ui
 
 
 class ManageTab:
@@ -15,14 +15,12 @@ class ManageTab:
 
         with ui.tab_panel(tab):
             with ui.row().classes("items-center w-full mb-4"):
-                self.filter_input = ui.input(
-                    "Filter by Card ID", on_change=self.on_filter_change
-                ).classes("flex-grow")
-                self.scan_button = ui.button(
-                    "Scan Card", icon="nfc", color="primary"
-                ).on_click(self.scan_card)
-                self.clear_button = ui.button(
-                    "Clear", icon="clear", color="neutral", on_click=self.clear_filter
+                self.filter_input = ui.input("Filter by Card ID", on_change=self.on_filter_change).classes("flex-grow")
+                self.scan_button = (
+                    ui.button("Scan Card", icon="nfc", color="primary").classes("py-2").on_click(self.scan_card)
+                )
+                self.clear_button = (
+                    ui.button("Clear", icon="clear", color="neutral").classes("py-2").on_click(self.clear_filter)
                 )
 
             self.users_column = ui.column().classes("w-full gap-2")
@@ -47,11 +45,20 @@ class ManageTab:
         self.scan_button.disable()
         self.filter_input.value = "Scanning..."
 
-        card_id = await mock_nfc_scan()
+        card_id = await self.store.nfc.one_shot(timeout=10.0, poll_interval=0.5)
+
+        self.scan_button.enable()
+        if not card_id:
+            ui.notify(
+                "NFC scan timed out. Please try again.",
+                color="warning",
+                position="top-right",
+            )
+            self.filter_input.value = self.filter_value
+            return
 
         self.filter_input.value = card_id
         self.filter_value = card_id
-        self.scan_button.enable()
         self.refresh()
 
     def refresh(self) -> None:
@@ -61,18 +68,12 @@ class ManageTab:
 
         # Apply filter if set
         if self.filter_value:
-            users = {
-                uid: data
-                for uid, data in users.items()
-                if self.filter_value in data["card_id"].upper()
-            }
+            users = {uid: data for uid, data in users.items() if self.filter_value in data["card_id"].upper()}
 
         if not users:
             with self.users_column:
                 if self.filter_value:
-                    ui.label(f"No users found matching '{self.filter_value}'.").classes(
-                        Styles.TEXT_MUTED
-                    )
+                    ui.label(f"No users found matching '{self.filter_value}'.").classes(Styles.TEXT_MUTED)
                 else:
                     ui.label("No users created yet.").classes(Styles.TEXT_MUTED)
             return
@@ -123,9 +124,7 @@ class ManageTab:
 
                         return handler
 
-                    ui.button("Delete", icon="delete", color="negative").on_click(
-                        make_delete_handler(user_id)
-                    )
+                    ui.button("Delete", icon="delete", color="negative").on_click(make_delete_handler(user_id))
 
 
 def build_manage_tab(tab, store: UserStore) -> ManageTab:
