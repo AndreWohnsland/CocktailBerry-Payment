@@ -1,8 +1,17 @@
 # store.py
 
-from typing import Any, Callable
+import os
+from typing import Any, Callable, Protocol
 
 from core.nfc import NFCScanner
+from services import mock_nfc_scan
+
+
+class NFCInterface(Protocol):
+    """Minimal interface for NFC scanners used by the UI."""
+
+    async def one_shot(self, timeout: float = 10.0, poll_interval: float = 0.5) -> str | None:
+        """Scan for a single NFC card."""
 
 
 class UserStore:
@@ -21,7 +30,8 @@ class UserStore:
             "12345684": {"card_id": "12345684", "adult": False, "balance": 1340.0},
         }
         self._listeners: list[Callable[[], None]] = []
-        self.nfc = NFCScanner()
+        self.mock_nfc_enabled = os.getenv("MOCK_NFC", "false").lower() == "true"
+        self.nfc: NFCInterface = self._create_nfc_interface()
 
     # --- State access ------------------------------------------------
 
@@ -70,3 +80,18 @@ class UserStore:
     def _notify(self) -> None:
         for listener in list(self._listeners):
             listener()
+
+    # --- NFC selection ----------------------------------------------
+
+    def _create_nfc_interface(self) -> NFCInterface:
+        """Return the configured NFC interface (real or mocked)."""
+
+        class MockNFC:
+            """Lightweight wrapper to present the same interface as NFCScanner."""
+
+            async def one_shot(self, timeout: float = 10.0, poll_interval: float = 0.5) -> str | None:
+                return await mock_nfc_scan()
+
+        if self.mock_nfc_enabled:
+            return MockNFC()
+        return NFCScanner()
