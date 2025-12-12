@@ -1,9 +1,10 @@
 # tabs/create_tab.py
 
-from nicegui import ui
+from services import mock_post_to_backend
 from store import UserStore
-from services import mock_nfc_scan, mock_post_to_backend
 from theme import Styles
+
+from nicegui import ui
 
 
 class CreateTab:
@@ -14,30 +15,22 @@ class CreateTab:
         self.card_id: str | None = None
 
         with ui.tab_panel(tab):
-            ui.label("Create user via NFC scan").classes(
-                f"text-xl my-2 {Styles.SUBHEADER}"
-            )
+            ui.label("Create user via NFC scan").classes(f"text-xl my-2 {Styles.SUBHEADER}")
 
             self.status_label = ui.label("Ready to scan").classes(Styles.TEXT_SECONDARY)
             with ui.row().classes("items-center mb-4"):
-                self.scan_button = ui.button(
-                    "Scan NFC card", icon="nfc", color="primary"
-                )
-                self.card_label = ui.label("No card scanned yet").classes(
-                    f"text-sm {Styles.TEXT_MUTED}"
-                )
+                self.scan_button = ui.button("Scan NFC card", icon="nfc", color="primary").classes("py-2")
+                self.card_label = ui.label("No card scanned yet").classes(f"text-sm {Styles.TEXT_MUTED}")
 
             self.checkbox_adult = ui.checkbox("Adult")
             self.checkbox_adult.visible = False
 
-            self.balance_input = ui.number(
-                label="Initial Balance (€)", value=10.0, format="%.2f", step=1
-            ).classes("w-48")
+            self.balance_input = ui.number(label="Initial Balance (€)", value=10.0, format="%.2f", step=1).classes(
+                "w-48"
+            )
             self.balance_input.visible = False
 
-            self.save_button = ui.button(
-                "Create Card", icon="save", color="secondary"
-            ).classes("mt-4")
+            self.save_button = ui.button("Create Card", icon="save", color="secondary").classes("my-4 py-4")
 
             self.save_button.visible = False
 
@@ -59,11 +52,14 @@ class CreateTab:
         self.save_button.visible = False
         self.card_id = None
 
-        card_id = await mock_nfc_scan()
+        card_id = await self.store.nfc.one_shot(timeout=10.0, poll_interval=0.5)
 
         self.card_id = card_id
-        self.status_label.text = "Scan complete"
         self.card_label.text = f"Scanned card ID: {card_id}"
+        self.status_label.text = "Scan complete"
+        self.scan_button.enable()
+        if not card_id:
+            return
 
         self.checkbox_adult.value = False
         self.checkbox_adult.visible = True
@@ -73,7 +69,6 @@ class CreateTab:
 
         self.save_button.visible = True
         self.save_button.enable()
-        self.scan_button.enable()
 
     async def save_user(self):
         """Send to backend (mock) and add to store."""

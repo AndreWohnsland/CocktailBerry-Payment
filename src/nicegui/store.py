@@ -1,6 +1,8 @@
 # store.py
 
-from typing import Callable, Dict, List, Any
+from typing import Any, Callable
+
+from core.nfc import NFCScanner
 
 
 class UserStore:
@@ -9,7 +11,7 @@ class UserStore:
     DEFAULT_BALANCE = 10.0
 
     def __init__(self) -> None:
-        self._users: Dict[str, Dict[str, Any]] = {
+        self._users: dict[str, dict[str, Any]] = {
             "12345678": {"card_id": "12345678", "adult": True, "balance": 12.0},
             "12345679": {"card_id": "12345679", "adult": True, "balance": 10.0},
             "12345680": {"card_id": "12345680", "adult": False, "balance": 20.0},
@@ -18,21 +20,22 @@ class UserStore:
             "12345683": {"card_id": "12345683", "adult": True, "balance": 10.0},
             "12345684": {"card_id": "12345684", "adult": False, "balance": 1340.0},
         }
-        self._listeners: List[Callable[[], None]] = []
+        self._listeners: list[Callable[[], None]] = []
+        self.nfc = NFCScanner()
 
     # --- State access ------------------------------------------------
 
-    def all_users(self) -> Dict[str, Dict[str, Any]]:
+    def all_users(self) -> dict[str, dict[str, Any]]:
         """Return a copy of all users."""
         return dict(self._users)
 
-    def get_user(self, card_id: str) -> Dict[str, Any] | None:
+    def get_user(self, card_id: str) -> dict[str, Any] | None:
         """Return a user by card_id, or None if not found."""
         return self._users.get(card_id)
 
     # --- Mutation methods --------------------------------------------
 
-    def add_user(self, data: Dict[str, Any]) -> int:
+    def add_user(self, data: dict[str, Any]) -> int:
         """Add a user and notify listeners. Returns new user id."""
         uid = data["card_id"]
         # Ensure balance is set with default if not provided

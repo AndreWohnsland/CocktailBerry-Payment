@@ -7,7 +7,7 @@ CocktailBerry-Payment is a payment and balance management service for the [Cockt
 ## Tech Stack
 
 - **Backend**: FastAPI (Python web framework for building APIs)
-- **Frontend/Admin UI**: Streamlit (Python-based web app framework)
+- **Frontend/Admin UI**: NiceGUI (Python-based web app framework)
 - **Server**: Uvicorn (ASGI server)
 - **Database**: SQLite with SQLAlchemy ORM and Alembic for migrations
 - **Python Version**: >= 3.13
@@ -16,7 +16,7 @@ CocktailBerry-Payment is a payment and balance management service for the [Cockt
 ## Code Style & Conventions
 
 ### Python Standards
-- Follow PEP 8 with a line length of 120 characters
+- Follow PEP 8 (ruff) with a line length of 120 characters
 - Use type annotations for all function parameters and return values
 - Use pathlib for file path operations (enforced via ruff's PTH rules)
 - Prefer list/dict comprehensions over map/filter
@@ -37,6 +37,8 @@ CocktailBerry-Payment is a payment and balance management service for the [Cockt
 - Use Google-style docstrings when documenting
 
 ## Project Structure (Planned)
+
+INFO: Currently here is streamlit as the frontend, but we will probably move to NiceGUI later. Adjust instructions accordingly.
 
 ```
 cocktailberry-payment/
@@ -65,11 +67,12 @@ cocktailberry-payment/
 - Follow RESTful naming conventions for endpoints
 - Use async/await for I/O-bound operations
 
-## Streamlit Guidelines
+## Frontend Guidelines
 
 - Keep the UI simple and intuitive for service personnel
+- Use build in css classes where possible
 - Use session state for maintaining user data across reruns
-- Organize pages using Streamlit's multipage app structure
+- Organize pages using NiceGUI's multipage app structure
 - Validate user inputs before processing
 
 ## Testing
@@ -96,43 +99,6 @@ cocktailberry-payment/
 - Service personnel authentication
 - Integration with CocktailBerry main application
 - Real-time balance updates
-
-## Common Patterns
-
-### API Endpoint Example
-```python
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
-
-router = APIRouter(prefix="/users", tags=["users"])
-
-class UserCreate(BaseModel):
-    nfc_id: str
-    name: str
-
-@router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_user(user: UserCreate) -> dict:
-    """Create a new user account."""
-    # Implementation here
-    return {"message": "User created", "nfc_id": user.nfc_id}
-```
-
-### Streamlit Page Example
-```python
-import streamlit as st
-
-st.set_page_config(page_title="CocktailBerry Payment", page_icon="🍹")
-
-st.title("Balance Management")
-
-if "balance" not in st.session_state:
-    st.session_state.balance = 0.0
-
-amount = st.number_input("Amount", min_value=0.0, step=0.50)
-if st.button("Add Balance"):
-    st.session_state.balance += amount
-    st.success(f"New balance: €{st.session_state.balance:.2f}")
-```
 
 ## When Helping with This Project
 
