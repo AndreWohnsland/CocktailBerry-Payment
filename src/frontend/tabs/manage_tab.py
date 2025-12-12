@@ -1,15 +1,17 @@
-# tabs/manage_tab.py
-
-from store import UserStore
-from theme import Styles
+from collections.abc import Coroutine
+from typing import Callable
 
 from nicegui import ui
+from nicegui.elements.tabs import Tab
+
+from src.frontend.store import UserStore
+from src.frontend.theme import Styles
 
 
 class ManageTab:
     """Manage tab: shows list of users with delete buttons."""
 
-    def __init__(self, store: UserStore, tab) -> None:
+    def __init__(self, store: UserStore, tab: Tab) -> None:
         self.store = store
         self.filter_value: str = ""
 
@@ -100,8 +102,8 @@ class ManageTab:
                             color="secondary",
                         ).props("outline").classes("min-w-26 align-end")
 
-                    def make_delete_handler(uid: str):
-                        async def handler():
+                    def make_delete_handler(uid: str) -> Callable[[], Coroutine[None, None, None]]:
+                        async def handler() -> None:
                             with ui.dialog() as dialog, ui.card():
                                 ui.label(f"Are you sure you want to delete card {uid}?")
                                 with ui.row():
@@ -127,6 +129,5 @@ class ManageTab:
                     ui.button("Delete", icon="delete", color="negative").on_click(make_delete_handler(user_id))
 
 
-def build_manage_tab(tab, store: UserStore) -> ManageTab:
-    """Helper to construct the ManageTab."""
+def build_manage_tab(tab: Tab, store: UserStore) -> ManageTab:
     return ManageTab(store, tab)

@@ -1,25 +1,27 @@
-# main.py
-
-from store import UserStore
-from tabs.create_tab import build_create_tab
-from tabs.manage_tab import build_manage_tab
-from tabs.topup_tab import build_topup_tab
-from theme import Styles, apply_theme
+from pathlib import Path
 
 from nicegui import app, ui
 
+from src.frontend.store import UserStore
+from src.frontend.tabs.create_tab import build_create_tab
+from src.frontend.tabs.manage_tab import build_manage_tab
+from src.frontend.tabs.topup_tab import build_topup_tab
+from src.frontend.theme import Styles, apply_theme
 
-def main():
+static_file_path = Path(__file__).parent / "static"
+
+
+def start_nicegui() -> None:
     # Apply theme before creating any UI elements
     apply_theme()
 
     store = UserStore()
-    app.add_static_files("/static", "static")
+    app.add_static_files("/static", static_file_path)
 
     with ui.column().classes("w-full max-w-2xl mx-auto mt-10"):
         with ui.row().classes("items-center justify-center w-full mb-2"):
             ui.icon("local_bar", size="2.5rem").classes("text-secondary")
-            ui.label("CocktailBerry Payment Management").classes(f"text-3xl {Styles.HEADER}")
+            ui.label("CocktailBerry Payment Manger").classes(f"text-3xl {Styles.HEADER}")
 
         with ui.tabs().classes("w-full") as tabs:
             tab_topup = ui.tab("Top-Up", icon="payments").classes("px-12")
@@ -32,6 +34,3 @@ def main():
             build_manage_tab(tab_manage, store)
 
     ui.run(title="CocktailBerry Payment", favicon="static/favicon.ico")
-
-
-main()
