@@ -1,10 +1,8 @@
-# store.py
-
 import os
 from typing import Any, Callable, Protocol
 
-from core.nfc import NFCScanner
-from services import mock_nfc_scan
+from src.frontend.core.nfc import NFCScanner
+from src.frontend.services import mock_nfc_scan
 
 
 class NFCInterface(Protocol):

@@ -1,9 +1,3 @@
-# theme.py
-"""
-Centralized theme configuration for the NiceGUI app.
-Define your colors here and apply them consistently across the app.
-"""
-
 from nicegui import ui
 
 # =============================================================================
@@ -60,7 +54,7 @@ def get_custom_css() -> str:
         --color-text-secondary: {COLORS["text_secondary"]};
         --color-text-muted: {COLORS["text_muted"]};
     }}
-    
+
     /* Background utility classes */
     .bg-app {{ background-color: {COLORS["background"]} !important; }}
     .bg-surface {{ background-color: {COLORS["surface"]} !important; }}
@@ -68,41 +62,41 @@ def get_custom_css() -> str:
     .bg-primary {{ background-color: {COLORS["primary"]} !important; }}
     .bg-secondary {{ background-color: {COLORS["secondary"]} !important; }}
     .bg-neutral {{ background-color: {COLORS["neutral"]} !important; }}
-    
+
     /* Text utility classes */
     .text-app-primary {{ color: {COLORS["text_primary"]} !important; }}
     .text-app-secondary {{ color: {COLORS["text_secondary"]} !important; }}
     .text-app-muted {{ color: {COLORS["text_muted"]} !important; }}
     .text-on-primary {{ color: white !important; }}
     .text-on-secondary {{ color: white !important; }}
-    
+
     /* Border utility classes */
     .border-primary {{ border-color: {COLORS["primary"]} !important; }}
     .border-secondary {{ border-color: {COLORS["secondary"]} !important; }}
     .border-neutral {{ border-color: {COLORS["neutral"]} !important; }}
-    
+
     /* Dark mode overrides for Quasar components */
     .q-card, .q-dialog__inner > div {{
         background-color: {COLORS["surface_elevated"]} !important;
         color: {COLORS["text_primary"]} !important;
     }}
-    
+
     .q-tab-panels {{
         background-color: {COLORS["surface"]} !important;
     }}
-    
+
     .q-tab-panel {{
         color: {COLORS["text_primary"]} !important;
     }}
-    
+
     .q-field__control {{
         color: {COLORS["text_primary"]} !important;
     }}
-    
+
     .q-field__label {{
         color: {COLORS["text_secondary"]} !important;
     }}
-    
+
     .q-input, .q-field__native {{
         color: {COLORS["text_primary"]} !important;
     }}
@@ -115,13 +109,10 @@ def get_custom_css() -> str:
 
 
 def apply_theme() -> None:
-    """
-    Apply the theme to the NiceGUI app.
-    Call this once at app startup, before creating UI elements.
-    """
+    """Apply the theme to the NiceGUI app."""
     # Enable dark mode
     ui.dark_mode(True)
-    
+
     # Set Quasar's built-in color system
     ui.colors(
         primary=COLORS["primary"],
@@ -143,10 +134,7 @@ def apply_theme() -> None:
 
 
 def apply_page_background() -> None:
-    """
-    Apply background styling to the current page.
-    Call this on each page if using multiple pages/routes.
-    """
+    """Apply background styling to the current page."""
     ui.query("body").style(f"background-color: {COLORS['background']}")
 
 

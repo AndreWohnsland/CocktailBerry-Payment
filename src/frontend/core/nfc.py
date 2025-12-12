@@ -5,6 +5,7 @@ Provides stateless NFC scanning with two modes:
 - continuous: Continuously scans and calls a callback for each card
 """
 
+import asyncio
 import time
 from collections.abc import Callable
 from threading import Event, Thread
@@ -82,13 +83,14 @@ class NFCScanner:
         """Check if NFC reader is available."""
         return self._reader is not None
 
-    def one_shot(self, timeout: float = 10.0, poll_interval: float = 0.5) -> str | None:
+    async def one_shot(self, timeout: float = 10.0, poll_interval: float = 0.5) -> str | None:
         """Scan for a single NFC card (blocking) until detected or timeout reached."""
         if not self._reader:
             return None
 
         start_time = time.monotonic()
         while (time.monotonic() - start_time) < timeout:
+            await asyncio.sleep(0.1)
             nfc_id = self._reader.read_card(timeout=max(1, int(poll_interval)))
             if nfc_id:
                 return nfc_id
