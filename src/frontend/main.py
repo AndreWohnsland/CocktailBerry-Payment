@@ -10,6 +10,8 @@ from src.frontend.theme import Styles, apply_theme
 
 static_file_path = Path(__file__).parent / "static"
 
+APP_NAME = "CocktailBerry Payment Manager"
+
 
 def start_nicegui() -> None:
     # Apply theme before creating any UI elements
@@ -17,12 +19,13 @@ def start_nicegui() -> None:
 
     store = UserStore()
     app.add_static_files("/static", static_file_path)
+    ui.button.default_classes("rounded-lg")
 
-    with ui.column().classes("w-full max-w-2xl mx-auto mt-10"):
-        with ui.row().classes("items-center justify-center w-full mb-2"):
-            ui.icon("local_bar", size="2.5rem").classes("text-secondary")
-            ui.label("CocktailBerry Payment Manger").classes(f"text-3xl {Styles.HEADER}")
+    with ui.header().classes("p-4 bg-surface"), ui.row().classes("items-center justify-center w-full"):
+        ui.image("/static/berry.svg").classes("w-10 h-10")
+        ui.label(APP_NAME).classes(f"text-3xl {Styles.HEADER}")
 
+    with ui.column().classes("w-full max-w-2xl mx-auto mt-4"):
         with ui.tabs().classes("w-full") as tabs:
             tab_topup = ui.tab("Top-Up", icon="payments").classes("px-12")
             tab_create = ui.tab("Create", icon="person_add").classes("px-12")
@@ -33,4 +36,4 @@ def start_nicegui() -> None:
             build_create_tab(tab_create, store)
             build_manage_tab(tab_manage, store)
 
-    ui.run(title="CocktailBerry Payment", favicon="static/favicon.ico")
+    ui.run(title=APP_NAME, favicon=static_file_path / "favicon.ico")
