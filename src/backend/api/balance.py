@@ -9,17 +9,18 @@ from src.backend.service.user_service import UserService, get_user_service
 router = APIRouter(tags=["balance"])
 
 
-@router.post("/balance/update")
+@router.post("/users/{nfc_id}/balance/top-up")
 def update_balance(
+    nfc_id: str,
     balance_request: BalanceUpdateRequest,
     user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> User:
-    """Update user balance (add or subtract)."""
-    return user_service.update_balance(balance_request.nfc_id, balance_request.amount)
+    """Top up user balance (add or subtract). nfc_id is provided in the URL path."""
+    return user_service.update_balance(nfc_id, balance_request.amount)
 
 
 @router.post(
-    "/cocktails/book",
+    "/users/{nfc_id}/cocktails/book",
     responses={
         status.HTTP_404_NOT_FOUND: {
             "description": "User not found",
@@ -40,6 +41,7 @@ def update_balance(
     },
 )
 def book_cocktail(
+    nfc_id: str,
     booking: BookCocktailRequest,
     user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> User:
@@ -48,4 +50,4 @@ def book_cocktail(
     Deducts the specified amount from the user's balance for a cocktail purchase.
     Performs age verification if the cocktail is alcoholic.
     """
-    return user_service.book_cocktail(booking.nfc_id, booking.price, booking.is_alcoholic)
+    return user_service.book_cocktail(nfc_id, booking.price, booking.is_alcoholic)

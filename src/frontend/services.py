@@ -2,6 +2,8 @@ import asyncio
 import random
 from typing import Any, Callable, Protocol
 
+import httpx
+
 from src.frontend.core.config import config as cfg
 from src.frontend.core.nfc import NFCScanner
 from src.frontend.models.nfc import Nfc
@@ -32,51 +34,58 @@ class NFCService:
     def __init__(self) -> None:
         self.api_url = cfg.api_url
         self.api_key = cfg.api_key
-        self._nfc_data: dict[str, Nfc] = {
-            f"{10000000 + i}": Nfc(nfc_id=f"{10000000 + i}", is_adult=i % 2 == 0, balance=float(i * 3))
-            for i in range(100)
-        }
+        # httpx AsyncClient created once for reuse
+        self._client = httpx.AsyncClient(base_url=self.api_url, headers={"x-api-key": self.api_key})
         self._listeners: list[Callable[[], None]] = []
         self.mock_nfc_enabled = cfg.mock_nfc
         self.nfc: NFCInterface = self._create_nfc_interface()
 
     # --- State access ------------------------------------------------
 
-    def get_all_nfc(self) -> dict[str, Nfc]:
-        """Return a copy of all users."""
-        return dict(self._nfc_data)
+    async def get_all_nfc(self) -> list[Nfc]:
+        """Fetch all NFC users from backend and return as a list of `Nfc` models."""
+        resp = await self._client.get("/users")
+        resp.raise_for_status()
+        data = resp.json()
+        return [Nfc.model_validate(item) for item in data]
 
-    def get_nfc(self, nfc_id: str) -> Nfc | None:
-        """Return a user by nfc_id, or None if not found."""
-        return self._nfc_data.get(nfc_id)
+    async def get_nfc(self, nfc_id: str) -> Nfc | None:
+        """Fetch a single user by NFC ID from backend, or return None if 404."""
+        # try cache first
+        resp = await self._client.get(f"/users/{nfc_id}")
+        if resp.status_code == 404:  # noqa: PLR2004
+            return None
+        resp.raise_for_status()
+        return Nfc.model_validate(resp.json())
 
     # --- Mutation methods --------------------------------------------
 
-    def create_nfc(self, nfc_id: str, is_adult: bool, balance: float) -> str:
-        """Add a user and notify listeners. Returns new user id."""
-        self._nfc_data[nfc_id] = Nfc(
-            nfc_id=nfc_id,
-            is_adult=is_adult,
-            balance=balance,
-        )
+    async def create_nfc(self, nfc_id: str, is_adult: bool, balance: float) -> str:
+        """Create user via backend and notify listeners. Returns new user id."""
+        payload = {"nfc_id": nfc_id, "is_adult": is_adult, "balance": balance}
+        resp = await self._client.post("/users", json=payload)
+        resp.raise_for_status()
+        user = Nfc.model_validate(resp.json())
         self._notify()
-        return nfc_id
+        return user.nfc_id
 
-    def delete_nfc(self, nfc_id: str) -> None:
-        """Delete a user if it exists and notify listeners."""
-        if nfc_id in self._nfc_data:
-            del self._nfc_data[nfc_id]
-            self._notify()
+    async def delete_nfc(self, nfc_id: str) -> None:
+        """Delete user via backend and notify listeners."""
+        resp = await self._client.delete(f"/users/{nfc_id}")
+        # backend returns 204 on success; treat 404 as no-op
+        if resp.status_code == 404:  # noqa: PLR2004
+            return
+        resp.raise_for_status()
+        self._notify()
 
-    def update_balance(self, nfc_id: str, amount: float) -> float:
-        """Update a user's balance by adding the given amount. Returns new balance."""
-        if nfc_id in self._nfc_data:
-            current = self._nfc_data[nfc_id].balance
-            new_balance = current + amount
-            self._nfc_data[nfc_id].balance = new_balance
-            self._notify()
-            return new_balance
-        return 0.0
+    async def update_balance(self, nfc_id: str, amount: float) -> float:
+        """Update balance via backend and return the new balance."""
+        payload = {"amount": amount}
+        resp = await self._client.post(f"/users/{nfc_id}/balance/top-up", json=payload)
+        resp.raise_for_status()
+        user = Nfc.model_validate(resp.json())
+        self._notify()
+        return user.balance
 
     # --- Listener management ----------------------------------------
 

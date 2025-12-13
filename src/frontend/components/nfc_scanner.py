@@ -1,6 +1,13 @@
-"""Reusable NFC scanner section component for NiceGUI."""
+"""Reusable NFC scanner section component for NiceGUI.
 
+This component now supports async `on_scan_complete` callbacks. If the
+provided callback returns an awaitable it will be awaited internally.
+"""
+
+import contextlib
+import inspect
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 from nicegui import ui
 
@@ -19,7 +26,7 @@ class NfcScannerSection:
         scan_hint: str,
         on_scan: Callable[[], Awaitable[str | None]],
         on_clear: Callable[[], None] | None = None,
-        on_scan_complete: Callable[[str | None], None] | None = None,
+        on_scan_complete: Callable[[str | None], Any] | None = None,
     ) -> None:
         """Initialize the NfcScannerSection component.
 
@@ -80,7 +87,10 @@ class NfcScannerSection:
         self.scan_button.enable()
 
         if self._on_scan_complete:
-            self._on_scan_complete(nfc_id)
+            with contextlib.suppress(Exception):
+                result = self._on_scan_complete(nfc_id)
+            if inspect.isawaitable(result):
+                await result
 
     def _clear_scan(self) -> None:
         """Clear the current scan and reset UI."""

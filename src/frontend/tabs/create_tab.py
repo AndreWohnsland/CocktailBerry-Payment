@@ -4,7 +4,7 @@ from nicegui.elements.tabs import Tab
 from src.frontend.components import AmountSelector, NfcScannerSection
 from src.frontend.core.config import config as cfg
 from src.frontend.i18n.translator import translations as t
-from src.frontend.services import NFCService, mock_post_to_backend
+from src.frontend.services import NFCService
 from src.frontend.theme import Styles
 
 
@@ -53,6 +53,7 @@ class CreateTab:
     def _on_scan_complete(self, nfc_id: str | None) -> None:
         """Handle scan completion."""
         if not nfc_id:
+            ui.notify(t.nfc_timeout, type="warning", position="top-right")
             return
 
         self.checkbox_adult.value = True
@@ -74,16 +75,7 @@ class CreateTab:
         self.save_button.disable()
         self.nfc_scanner.set_status(t.create_nfc_creating)
 
-        # TODO: this will be the service (currently store)
-        await mock_post_to_backend(
-            {
-                "nfc_id": self.nfc_scanner.nfc_id,
-                "is_adult": self.checkbox_adult.value,
-                "balance": self.amount_selector.value,
-            }
-        )
-
-        self.service.create_nfc(
+        await self.service.create_nfc(
             nfc_id=self.nfc_scanner.nfc_id,
             is_adult=self.checkbox_adult.value,
             balance=self.amount_selector.value,
