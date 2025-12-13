@@ -67,13 +67,13 @@ class TopUpTab:
             return await self._mock_topup_scan()
         return await self.service.nfc.one_shot()
 
-    def _on_scan_complete(self, nfc_id: str | None) -> None:
-        """Handle scan completion."""
+    async def _on_scan_complete(self, nfc_id: str | None) -> None:
+        """Handle scan completion (async)."""
         if not nfc_id:
             ui.notify(t.nfc_timeout, type="warning", position="top-right")
             return
 
-        self.current_user = self.service.get_nfc(nfc_id)
+        self.current_user = await self.service.get_nfc(nfc_id)
 
         if self.current_user:
             self.nfc_scanner.set_status(t.nfc_found)
@@ -116,10 +116,10 @@ class TopUpTab:
         self.update_button.disable()
         self.nfc_scanner.set_status(t.balance_updating)
 
-        new_balance = self.service.update_balance(self.nfc_scanner.nfc_id, amount)
+        new_balance = await self.service.update_balance(self.nfc_scanner.nfc_id, amount)
 
         # Refresh current user data
-        self.current_user = self.service.get_nfc(self.nfc_scanner.nfc_id)
+        self.current_user = await self.service.get_nfc(self.nfc_scanner.nfc_id)
         self._update_balance_display()
 
         # Hide the top-up controls and reset scanner after successful update
@@ -140,10 +140,10 @@ class TopUpTab:
     async def _mock_topup_scan(self) -> str | None:
         """Return a known user card id for top-up testing."""
         await asyncio.sleep(1.0)
-        users = list(self.service.get_all_nfc().keys())
+        users = await self.service.get_all_nfc()
         if not users:
             return None
-        return random.choice(users)
+        return random.choice([u.nfc_id for u in users])
 
 
 def build_topup_tab(tab: Tab, service: NFCService) -> TopUpTab:

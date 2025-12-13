@@ -1,3 +1,5 @@
+import asyncio
+from collections.abc import Coroutine
 from typing import Any
 
 from nicegui import events, ui
@@ -97,9 +99,17 @@ class ManageTab:
         # Bind filter input to table's built-in filter
         self.filter_input.bind_value_to(self.table, "filter")
 
-        # Register for changes and do initial render
-        self.service.add_listener(self._refresh)
-        self._refresh()
+        # Register for changes and do initial render (schedule async refresh)
+        self._background_tasks: set[asyncio.Task] = set()
+        self.service.add_listener(lambda: self._add_task(self.refresh()))
+        # Schedule the initial refresh after the event loop is running
+        ui.timer(0, lambda: self._add_task(self.refresh()), once=True)
+
+    def _add_task(self, coro: Coroutine) -> None:
+        """Add a background task and keep a reference to prevent GC."""
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     def _on_filter_change(self) -> None:
         """Update filter value state."""
@@ -153,12 +163,13 @@ class ManageTab:
                 type="warning",
                 position="top-right",
             )
-            self.service.delete_nfc(nfc_id)
+            await self.service.delete_nfc(nfc_id)
 
-    def _refresh(self) -> None:
-        """Update table rows from the store."""
-        nfc_data = self.service.get_all_nfc()
-        rows = [data.model_dump() for data in sorted(nfc_data.values(), key=lambda x: x.nfc_id)]
+    async def refresh(self) -> None:
+        """Update table rows from the store (async)."""
+        print("Refreshing manage tab user list...")
+        users = await self.service.get_all_nfc()
+        rows = [data.model_dump() for data in sorted(users, key=lambda x: x.nfc_id)]
         self.table.update_rows(rows)
 
 

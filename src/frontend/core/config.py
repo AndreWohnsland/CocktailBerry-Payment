@@ -17,7 +17,7 @@ class Config(BaseSettings):
 
     @property
     def api_url(self) -> str:
-        return f"{self.api_address}:{self.api_port}"
+        return f"{self.api_address}:{self.api_port}/api"
 
 
 config = Config()  # type: ignore[assignment]
