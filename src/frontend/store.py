@@ -19,13 +19,8 @@ class UserStore:
 
     def __init__(self) -> None:
         self._users: dict[str, dict[str, Any]] = {
-            "12345678": {"card_id": "12345678", "adult": True, "balance": 12.0},
-            "12345679": {"card_id": "12345679", "adult": True, "balance": 10.0},
-            "12345680": {"card_id": "12345680", "adult": False, "balance": 20.0},
-            "12345681": {"card_id": "12345681", "adult": True, "balance": 0.0},
-            "12345682": {"card_id": "12345682", "adult": False, "balance": 123.0},
-            "12345683": {"card_id": "12345683", "adult": True, "balance": 10.0},
-            "12345684": {"card_id": "12345684", "adult": False, "balance": 1340.0},
+            f"{10000000 + i}": {"card_id": f"{10000000 + i}", "adult": i % 2 == 0, "balance": float(i * 3)}
+            for i in range(100)
         }
         self._listeners: list[Callable[[], None]] = []
         self.mock_nfc_enabled = os.getenv("MOCK_NFC", "false").lower() == "true"
