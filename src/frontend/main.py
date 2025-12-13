@@ -3,7 +3,7 @@ from pathlib import Path
 from nicegui import app, ui
 
 from src.frontend.i18n.translator import translations as t
-from src.frontend.store import UserStore
+from src.frontend.services import NFCService
 from src.frontend.tabs.create_tab import build_create_tab
 from src.frontend.tabs.manage_tab import build_manage_tab
 from src.frontend.tabs.topup_tab import build_topup_tab
@@ -18,7 +18,7 @@ def start_nicegui() -> None:
     # Apply theme before creating any UI elements
     apply_theme()
 
-    store = UserStore()
+    service = NFCService()
     app.add_static_files("/static", static_file_path)
     ui.button.default_classes("rounded-lg")
 
@@ -33,8 +33,8 @@ def start_nicegui() -> None:
             tab_manage = ui.tab(t.tab_manage, icon="manage_accounts").classes("px-12")
 
         with ui.tab_panels(tabs, value=tab_topup).classes("w-full px-4 rounded-2xl"):
-            build_topup_tab(tab_topup, store)
-            build_create_tab(tab_create, store)
-            build_manage_tab(tab_manage, store)
+            build_topup_tab(tab_topup, service)
+            build_create_tab(tab_create, service)
+            build_manage_tab(tab_manage, service)
 
     ui.run(title=APP_NAME, favicon=static_file_path / "favicon.ico")

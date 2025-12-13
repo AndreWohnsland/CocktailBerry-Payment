@@ -25,16 +25,16 @@ class NfcScannerSection:
 
         Args:
             scan_hint: Text to show while scanning (e.g., "Hold a card...").
-            on_scan: Async callback that performs the actual NFC scan and returns card_id.
+            on_scan: Async callback that performs the actual NFC scan and returns nfc_id.
             on_clear: Optional callback when clear button is pressed.
-            on_scan_complete: Optional callback when scan completes with the card_id result.
+            on_scan_complete: Optional callback when scan completes with the nfc_id result.
 
         """
         self._scan_hint = scan_hint
         self._on_scan = on_scan
         self._on_clear = on_clear
         self._on_scan_complete = on_scan_complete
-        self._card_id: str | None = None
+        self._nfc_id: str | None = None
 
         self._build_ui()
 
@@ -52,9 +52,9 @@ class NfcScannerSection:
         self.clear_button.on_click(self._clear_scan)
 
     @property
-    def card_id(self) -> str | None:
+    def nfc_id(self) -> str | None:
         """Return the currently scanned card ID."""
-        return self._card_id
+        return self._nfc_id
 
     async def _start_scan(self) -> None:
         """Start NFC scan using the configured callback."""
@@ -64,13 +64,13 @@ class NfcScannerSection:
         self.status_label.text = t.nfc_scanning_progress
         self.card_label.text = self._scan_hint
 
-        self._card_id = None
+        self._nfc_id = None
 
-        card_id = await self._on_scan()
-        self._card_id = card_id
+        nfc_id = await self._on_scan()
+        self._nfc_id = nfc_id
 
-        if card_id:
-            self.card_label.text = t.nfc_scanned_card.format(card_id=card_id)
+        if nfc_id:
+            self.card_label.text = t.nfc_scanned_card.format(nfc_id=nfc_id)
             self.status_label.text = t.nfc_scan_complete
             self.clear_button.visible = True
         else:
@@ -80,11 +80,11 @@ class NfcScannerSection:
         self.scan_button.enable()
 
         if self._on_scan_complete:
-            self._on_scan_complete(card_id)
+            self._on_scan_complete(nfc_id)
 
     def _clear_scan(self) -> None:
         """Clear the current scan and reset UI."""
-        self._card_id = None
+        self._nfc_id = None
         self.status_label.text = t.nfc_ready_to_scan
         self.card_label.text = t.nfc_no_card_scanned
         self.clear_button.visible = False
@@ -102,7 +102,7 @@ class NfcScannerSection:
 
     def reset(self) -> None:
         """Reset the scanner section to initial state."""
-        self._card_id = None
+        self._nfc_id = None
         self.status_label.text = t.nfc_ready_to_scan
         self.card_label.text = t.nfc_no_card_scanned
         self.clear_button.visible = False
