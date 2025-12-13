@@ -7,6 +7,7 @@ from nicegui import ui
 from nicegui.elements.tabs import Tab
 
 from src.frontend.components import AmountSelector, NfcScannerSection
+from src.frontend.i18n.translator import translations as t
 from src.frontend.store import UserStore
 from src.frontend.theme import Styles
 
@@ -17,12 +18,10 @@ class TopUpTab:
     def __init__(self, store: UserStore, tab: Tab) -> None:
         self.store = store
         self.current_user: dict | None = None
-        self._scan_hint = (
-            "Simulating NFC scan (sample users)..." if self.store.mock_nfc_enabled else "Hold a card to the reader..."
-        )
+        self._scan_hint = t.nfc_simulate_hint if self.store.mock_nfc_enabled else t.nfc_scan_hint
 
         with ui.tab_panel(tab):
-            ui.label("Top-Up user balance via NFC scan").classes(f"text-xl my-2 {Styles.SUBHEADER}")
+            ui.label(t.header_top_up).classes(f"text-xl my-2 {Styles.SUBHEADER}")
 
             self.nfc_scanner = NfcScannerSection(
                 scan_hint=self._scan_hint,
@@ -33,21 +32,23 @@ class TopUpTab:
 
             # Balance display (hidden until scan)
             self.balance_container = ui.card().classes(
-                f"{Styles.CARD} w-full mb-4 p-4 flex flex-col items-center text-center gap-2"
+                f"{Styles.CARD} w-full mb-6 p-4 flex flex-col items-center text-center gap-2"
             )
             self.balance_container.visible = False
             with self.balance_container:
-                ui.label("Current Balance").classes(f"text-lg {Styles.SUBHEADER}")
+                ui.label(t.balance).classes(f"text-lg {Styles.SUBHEADER}")
                 self.balance_label = ui.label("€0.00").classes("text-4xl font-bold")
 
             # Top-up controls (hidden until scan)
-            self.topup_container = ui.card().classes(f"{Styles.CARD} w-full mb-4 p-4 flex flex-col items-center gap-3")
+            self.topup_container = ui.card().classes(
+                f"{Styles.CARD} w-full mb-4 p-4 py-6 flex flex-col items-center gap-3"
+            )
             self.topup_container.visible = False
             with self.topup_container:
                 self.amount_selector = AmountSelector(initial_value=10.0)
                 self.update_button = ui.button(
-                    "Update Balance", icon="account_balance_wallet", color="secondary"
-                ).classes("mt-8 py-3 w-full max-w-md")
+                    t.balance_update, icon="account_balance_wallet", color="secondary"
+                ).classes("mt-8 py-3 w-full max-w-md text-xl font-bold")
 
         # Attach handlers
         self.update_button.on_click(self.update_balance)
@@ -67,27 +68,23 @@ class TopUpTab:
     def _on_scan_complete(self, card_id: str | None) -> None:
         """Handle scan completion."""
         if not card_id:
-            ui.notify(
-                "NFC scan timed out. Please try again.",
-                color="warning",
-                position="top-right",
-            )
+            ui.notify(t.nfc_timeout, type="warning", position="top-right")
             return
 
         self.current_user = self.store.get_user(card_id)
 
         if self.current_user:
-            self.nfc_scanner.set_status("User found")
+            self.nfc_scanner.set_status(t.nfc_found)
             self._update_balance_display()
             self.balance_container.visible = True
             self.topup_container.visible = True
             self.amount_selector.reset(10.0)
         else:
-            self.nfc_scanner.set_status("User not found")
-            self.nfc_scanner.set_card_label(f"Card ID {card_id} is not registered")
+            self.nfc_scanner.set_status(t.nfc_not_found)
+            self.nfc_scanner.set_card_label(t.nfc_card_not_registered.format(card_id=card_id))
             ui.notify(
-                "User not found. Please create user first.",
-                color="warning",
+                t.nfc_not_found_detail,
+                type="warning",
                 position="top-right",
             )
 
@@ -106,16 +103,17 @@ class TopUpTab:
     async def update_balance(self) -> None:
         """Update the user's balance."""
         if not self.nfc_scanner.card_id or not self.current_user:
-            ui.notify("No user scanned!", color="negative", position="top-right")
+            # should not happen due to UI state, but just in case
+            ui.notify("No user scanned!", type="negative", position="top-right")
             return
 
         amount = self.amount_selector.value
         if amount == 0:
-            ui.notify("Please enter an amount to add.", color="warning", position="top-right")
+            ui.notify(t.balance_no_amount_given, type="warning", position="top-right")
             return
 
         self.update_button.disable()
-        self.nfc_scanner.set_status("Updating balance...")
+        self.nfc_scanner.set_status(t.balance_updating)
 
         new_balance = self.store.update_balance(self.nfc_scanner.card_id, amount)
 
@@ -128,12 +126,11 @@ class TopUpTab:
         self.balance_container.visible = False
         self.current_user = None
 
-        action = "added to" if amount > 0 else "removed from"
         self.nfc_scanner.reset()
-        self.nfc_scanner.set_status(f"€{abs(amount):.2f} {action} balance")
+        self.nfc_scanner.set_status(t.balance_notify_add.format(amount=amount))
         ui.notify(
-            f"Balance updated! New balance: €{new_balance:.2f}",
-            color="positive",
+            t.balance_updated.format(balance=new_balance),
+            type="positive",
             position="top-right",
         )
 
