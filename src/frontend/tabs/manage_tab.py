@@ -4,12 +4,12 @@ from nicegui import events, ui
 from nicegui.elements.tabs import Tab
 
 from src.frontend.i18n.translator import translations as t
-from src.frontend.store import UserStore
+from src.frontend.services import NFCService
 
 # Table column definitions
 TABLE_COLUMNS: list[dict[str, Any]] = [
-    {"name": "card_id", "label": "NFC ID", "field": "card_id", "align": "left", "sortable": True},
-    {"name": "status", "label": "Status", "field": "adult", "align": "left", "sortable": True},
+    {"name": "nfc_id", "label": "NFC ID", "field": "nfc_id", "align": "left", "sortable": True},
+    {"name": "is_adult", "label": "Status", "field": "is_adult", "align": "left", "sortable": True},
     {"name": "balance", "label": t.balance, "field": "balance", "align": "left", "sortable": True},
     {"name": "action", "label": "Action", "field": "action", "align": "left"},
 ]
@@ -18,7 +18,7 @@ TABLE_COLUMNS: list[dict[str, Any]] = [
 CARD_ID_SLOT = """
 <q-td :props="props">
     <q-chip icon="credit_card" color="primary" text-color="white">
-        {{ props.row.card_id }}
+        {{ props.row.nfc_id }}
     </q-chip>
 </q-td>
 """
@@ -26,11 +26,11 @@ CARD_ID_SLOT = """
 STATUS_SLOT = f"""
 <q-td :props="props">
     <q-chip
-        :icon="props.row.adult ? 'person' : 'child_care'"
-        :color="props.row.adult ? 'green' : 'grey'"
+        :icon="props.row.is_adult ? 'person' : 'child_care'"
+        :color="props.row.is_adult ? 'green' : 'grey'"
         text-color="white"
     >
-        {{{{ props.row.adult ? '{t.adult}' : '{t.child}' }}}}
+        {{{{ props.row.is_adult ? '{t.adult}' : '{t.child}' }}}}
     </q-chip>
 </q-td>
 """
@@ -62,8 +62,8 @@ PAGE_SIZE = 10
 class ManageTab:
     """Manage tab: shows list of users with delete buttons using a paginated table."""
 
-    def __init__(self, store: UserStore, tab: Tab) -> None:
-        self.store = store
+    def __init__(self, service: NFCService, tab: Tab) -> None:
+        self.service = service
         self.filter_value: str = ""
 
         with ui.tab_panel(tab):
@@ -80,15 +80,15 @@ class ManageTab:
                 ui.table(
                     columns=TABLE_COLUMNS,
                     rows=[],
-                    row_key="id",
+                    row_key="nfc_id",
                     pagination=PAGE_SIZE,
                 )
                 .classes("w-full mb-4")
                 .props("flat bordered")
             )
 
-            self.table.add_slot("body-cell-card_id", CARD_ID_SLOT)
-            self.table.add_slot("body-cell-status", STATUS_SLOT)
+            self.table.add_slot("body-cell-nfc_id", CARD_ID_SLOT)
+            self.table.add_slot("body-cell-is_adult", STATUS_SLOT)
             self.table.add_slot("body-cell-balance", BALANCE_SLOT)
             self.table.add_slot("body-cell-action", ACTION_SLOT)
 
@@ -98,7 +98,7 @@ class ManageTab:
         self.filter_input.bind_value_to(self.table, "filter")
 
         # Register for changes and do initial render
-        self.store.add_listener(self._refresh)
+        self.service.add_listener(self._refresh)
         self._refresh()
 
     def _on_filter_change(self) -> None:
@@ -116,10 +116,10 @@ class ManageTab:
         original_value = self.filter_input.value
         self.filter_input.value = "Scanning..."
 
-        card_id = await self.store.nfc.one_shot(timeout=10.0, poll_interval=0.5)
+        nfc_id = await self.service.nfc.one_shot()
 
         self.scan_button.enable()
-        if not card_id:
+        if not nfc_id:
             ui.notify(
                 t.nfc_timeout,
                 type="warning",
@@ -128,17 +128,16 @@ class ManageTab:
             self.filter_input.value = original_value or ""
             return
 
-        self.filter_input.value = card_id
-        self.filter_value = card_id
+        self.filter_input.value = nfc_id
+        self.filter_value = nfc_id
 
     async def _on_delete(self, e: events.GenericEventArguments) -> None:
         """Handle delete button click from table row."""
         row = e.args
-        user_id = row["id"]
-        card_id = row["card_id"]
+        nfc_id = row["nfc_id"]
 
         with ui.dialog() as dialog, ui.card():
-            ui.label(t.manage_delete_confirm.format(card_id=card_id))
+            ui.label(t.manage_delete_confirm.format(nfc_id=nfc_id))
             with ui.row().classes("w-full flex justify-between items-center mt-2"):
                 ui.button(
                     t.delete,
@@ -150,28 +149,18 @@ class ManageTab:
         result = await dialog
         if result:
             ui.notify(
-                t.manage_card_deleted.format(card_id=card_id),
+                t.manage_card_deleted.format(nfc_id=nfc_id),
                 type="warning",
                 position="top-right",
             )
-            self.store.delete_user(user_id)
+            self.service.delete_nfc(nfc_id)
 
     def _refresh(self) -> None:
         """Update table rows from the store."""
-        users = self.store.all_users()
-
-        rows = [
-            {
-                "id": user_id,
-                "card_id": data["card_id"],
-                "adult": data.get("adult", False),
-                "balance": data.get("balance", 0.0),
-            }
-            for user_id, data in sorted(users.items())
-        ]
-
+        nfc_data = self.service.get_all_nfc()
+        rows = [data.model_dump() for data in sorted(nfc_data.values(), key=lambda x: x.nfc_id)]
         self.table.update_rows(rows)
 
 
-def build_manage_tab(tab: Tab, store: UserStore) -> ManageTab:
-    return ManageTab(store, tab)
+def build_manage_tab(tab: Tab, service: NFCService) -> ManageTab:
+    return ManageTab(service, tab)

@@ -1,3 +1,3 @@
-import uvicorn
+from src.backend.app import run_with_uvicorn
 
-uvicorn.run("src.backend.app:app", host="0.0.0.0", port=8000, log_level="info")
+run_with_uvicorn()

@@ -1,0 +1,2 @@
+DEFAULT_BACKEND_PORT = 9876
+DEFAULT_API_KEY = "CocktailBerry-Secret-Change-Me"

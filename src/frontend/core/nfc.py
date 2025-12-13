@@ -18,6 +18,8 @@ from smartcard.pcsc.PCSCReader import PCSCReader
 from smartcard.System import readers
 from smartcard.util import toHexString
 
+from src.frontend.core.config import config as cfg
+
 
 class USBReader:
     """Low-level USB NFC reader interface."""
@@ -83,7 +85,7 @@ class NFCScanner:
         """Check if NFC reader is available."""
         return self._reader is not None
 
-    async def one_shot(self, timeout: float = 10.0, poll_interval: float = 0.5) -> str | None:
+    async def one_shot(self, timeout: float = cfg.nfc_timeout, poll_interval: float = 0.5) -> str | None:
         """Scan for a single NFC card (blocking) until detected or timeout reached."""
         if not self._reader:
             return None

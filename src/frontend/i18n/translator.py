@@ -1,11 +1,11 @@
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
 
+from src.frontend.core.config import config as cfg
+
 TRANSLATION_DIR = Path(__file__).parent / "translations"
-LANGUAGE = os.getenv("LANGUAGE", "de")
 
 
 @dataclass
@@ -50,7 +50,7 @@ class Translations:
     tab_top_up: str
 
 
-def load_translations(lang: str = LANGUAGE) -> Translations:
+def load_translations(lang: str = cfg.language) -> Translations:
     file_path = TRANSLATION_DIR / f"{lang}.yaml"
     if not file_path.exists():
         file_path = TRANSLATION_DIR / "en.yaml"

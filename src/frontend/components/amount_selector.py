@@ -5,6 +5,8 @@ from collections.abc import Callable
 
 from nicegui import ui
 
+from src.frontend.core.config import config as cfg
+
 
 class AmountSelector:
     """A reusable component for selecting monetary amounts.
@@ -14,7 +16,7 @@ class AmountSelector:
 
     def __init__(
         self,
-        initial_value: float = 10.0,
+        initial_value: float = cfg.default_balance,
         min_value: float = 0.0,
         max_value: float = 1000.0,
         preset_amounts: list[int] | None = None,
@@ -107,7 +109,7 @@ class AmountSelector:
         self._value = new_value
         self._refresh_display()
 
-    def reset(self, value: float = 10.0) -> None:
+    def reset(self, value: float = cfg.default_balance) -> None:
         """Reset the selector to a specific value."""
         self._value = value
         self._refresh_display()

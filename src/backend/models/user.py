@@ -6,14 +6,13 @@ class UserBase(SQLModel):
 
     nfc_id: str = Field(index=True, unique=True, min_length=1, description="NFC card ID", primary_key=True)
     is_adult: bool = Field(default=False, description="Whether user is 18 or older")
+    balance: float = Field(default=0.0, description="User balance")
 
 
 class User(UserBase, table=True):
     """Database model for users."""
 
     __tablename__ = "users"  # type: ignore[assignment]
-
-    balance: float = Field(default=0.0, description="User balance")
 
 
 class UserCreate(UserBase):
