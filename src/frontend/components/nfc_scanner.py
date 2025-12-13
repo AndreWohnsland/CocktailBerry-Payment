@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 
 from nicegui import ui
 
+from src.frontend.i18n.translator import translations as t
 from src.frontend.theme import Styles
 
 
@@ -39,12 +40,12 @@ class NfcScannerSection:
 
     def _build_ui(self) -> None:
         """Build the scanner UI elements."""
-        self.status_label = ui.label("Ready to scan").classes(Styles.TEXT_SECONDARY)
+        self.status_label = ui.label(t.nfc_ready_to_scan).classes(Styles.TEXT_SECONDARY)
         with ui.row().classes("items-center mb-4 gap-2"):
-            self.scan_button = ui.button("Scan NFC card", icon="nfc", color="primary").classes("py-2")
-            self.clear_button = ui.button("Clear", icon="clear", color="standard").classes("py-2").props("flat")
+            self.scan_button = ui.button(t.nfc_scan, icon="nfc", color="primary").classes("py-2")
+            self.clear_button = ui.button(t.clear, icon="clear", color="standard").classes("py-2").props("flat")
             self.clear_button.visible = False
-            self.card_label = ui.label("No card scanned yet").classes(f"text-sm {Styles.TEXT_MUTED} text-center")
+            self.card_label = ui.label(t.nfc_no_card_scanned).classes(f"text-sm {Styles.TEXT_MUTED} text-center")
 
         # Attach handlers
         self.scan_button.on_click(self._start_scan)
@@ -60,7 +61,7 @@ class NfcScannerSection:
         self.scan_button.disable()
         self.clear_button.visible = False
 
-        self.status_label.text = "Scanning NFC card..."
+        self.status_label.text = t.nfc_scanning_progress
         self.card_label.text = self._scan_hint
 
         self._card_id = None
@@ -69,12 +70,12 @@ class NfcScannerSection:
         self._card_id = card_id
 
         if card_id:
-            self.card_label.text = f"Scanned card ID: {card_id}"
-            self.status_label.text = "Scan complete"
+            self.card_label.text = t.nfc_scanned_card.format(card_id=card_id)
+            self.status_label.text = t.nfc_scan_complete
             self.clear_button.visible = True
         else:
-            self.card_label.text = "No card detected"
-            self.status_label.text = "Scan timed out"
+            self.card_label.text = t.nfc_no_card_detected
+            self.status_label.text = t.nfc_timeout
 
         self.scan_button.enable()
 
@@ -84,8 +85,8 @@ class NfcScannerSection:
     def _clear_scan(self) -> None:
         """Clear the current scan and reset UI."""
         self._card_id = None
-        self.status_label.text = "Ready to scan"
-        self.card_label.text = "No card scanned yet"
+        self.status_label.text = t.nfc_ready_to_scan
+        self.card_label.text = t.nfc_no_card_scanned
         self.clear_button.visible = False
 
         if self._on_clear:
@@ -102,8 +103,8 @@ class NfcScannerSection:
     def reset(self) -> None:
         """Reset the scanner section to initial state."""
         self._card_id = None
-        self.status_label.text = "Ready to scan"
-        self.card_label.text = "No card scanned yet"
+        self.status_label.text = t.nfc_ready_to_scan
+        self.card_label.text = t.nfc_no_card_scanned
         self.clear_button.visible = False
         self.scan_button.enable()
 

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from nicegui import app, ui
 
+from src.frontend.i18n.translator import translations as t
 from src.frontend.store import UserStore
 from src.frontend.tabs.create_tab import build_create_tab
 from src.frontend.tabs.manage_tab import build_manage_tab
@@ -27,9 +28,9 @@ def start_nicegui() -> None:
 
     with ui.column().classes("w-full max-w-2xl mx-auto mt-4"):
         with ui.tabs().classes("w-full") as tabs:
-            tab_topup = ui.tab("Top-Up", icon="payments").classes("px-12")
-            tab_create = ui.tab("Create", icon="person_add").classes("px-12")
-            tab_manage = ui.tab("Manage", icon="manage_accounts").classes("px-12")
+            tab_topup = ui.tab(t.tab_top_up, icon="payments").classes("px-12")
+            tab_create = ui.tab(t.tab_create, icon="person_add").classes("px-12")
+            tab_manage = ui.tab(t.tab_manage, icon="manage_accounts").classes("px-12")
 
         with ui.tab_panels(tabs, value=tab_topup).classes("w-full px-4 rounded-2xl"):
             build_topup_tab(tab_topup, store)
