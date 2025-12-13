@@ -54,13 +54,15 @@ class AmountSelector:
                 )
 
         # Current amount display
-        self._amount_label = ui.label(self._format_display()).classes("text-5xl my-4 font-bold text-center")
+        self._amount_label = ui.label(self._format_display()).classes(
+            "text-5xl my-2 font-bold text-center bg-surface rounded-lg px-6 py-4 w-full max-w-md"
+        )
 
         # Increment/decrement buttons
         with ui.grid(columns=len(self._step_amounts)).classes("w-full max-w-md gap-2"):
             for step in self._step_amounts:
                 icon = "remove" if step < 0 else "add"
-                ui.button(f"{abs(step)}", icon=icon).classes("py-3 text-lg").on_click(
+                ui.button(f"€ {abs(step)}", icon=icon).classes("py-3 text-lg opacity-85").on_click(
                     lambda s=step: self.change_value(s)  # type: ignore
                 )
 
