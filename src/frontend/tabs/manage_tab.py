@@ -6,7 +6,7 @@ from nicegui import events, ui
 from nicegui.elements.tabs import Tab
 
 from src.frontend.i18n.translator import translations as t
-from src.frontend.services import NFCService
+from src.frontend.services import NFCService, is_err, is_success
 
 # Table column definitions
 TABLE_COLUMNS: list[dict[str, Any]] = [
@@ -103,7 +103,7 @@ class ManageTab:
         self._background_tasks: set[asyncio.Task] = set()
         self.service.add_listener(lambda: self._add_task(self.refresh()))
         # Schedule the initial refresh after the event loop is running
-        ui.timer(0, lambda: self._add_task(self.refresh()), once=True)
+        ui.timer(0, lambda: self._add_task(self.refresh(notify=False)), once=True)
 
     def _add_task(self, coro: Coroutine) -> None:
         """Add a background task and keep a reference to prevent GC."""
@@ -157,20 +157,29 @@ class ManageTab:
                 ui.button(t.cancel, on_click=dialog.close)
 
         result = await dialog
-        if result:
-            ui.notify(
-                t.manage_card_deleted.format(nfc_id=nfc_id),
-                type="warning",
-                position="top-right",
-            )
-            await self.service.delete_nfc(nfc_id)
+        if not result:
+            return
+        api_result = await self.service.delete_nfc(nfc_id)
+        if is_err(api_result):
+            ui.notify(api_result.error, type="negative", position="top-right")
+            return
+        ui.notify(
+            t.manage_card_deleted.format(nfc_id=nfc_id),
+            type="warning",
+            position="top-right",
+        )
 
-    async def refresh(self) -> None:
+    async def refresh(self, notify: bool = True) -> None:
         """Update table rows from the store (async)."""
-        print("Refreshing manage tab user list...")
-        users = await self.service.get_all_nfc()
-        rows = [data.model_dump() for data in sorted(users, key=lambda x: x.nfc_id)]
-        self.table.update_rows(rows)
+        result = await self.service.get_all_nfc()
+        if is_err(result):
+            if notify:
+                ui.notify(result.error, type="negative", position="top-right")
+            return
+        if is_success(result):
+            users = result.data
+            rows = [data.model_dump() for data in sorted(users, key=lambda x: x.nfc_id)]
+            self.table.update_rows(rows)
 
 
 def build_manage_tab(tab: Tab, service: NFCService) -> ManageTab:

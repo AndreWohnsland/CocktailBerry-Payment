@@ -48,6 +48,8 @@ class Translations:
     tab_create: str
     tab_manage: str
     tab_top_up: str
+    balance_update_failed: str
+    request_error: str
 
 
 def load_translations(lang: str = cfg.language) -> Translations:
