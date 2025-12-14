@@ -1,0 +1,11 @@
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SRC = ROOT / "src"
+
+sys.path.insert(0, str(SRC))
+
+from src.frontend.main import start_nicegui
+
+start_nicegui()

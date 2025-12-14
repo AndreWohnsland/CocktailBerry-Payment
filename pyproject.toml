@@ -10,13 +10,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-frontend = [
+gui = [
     "httpx>=0.28.1",
     "nicegui>=3.4.0",
     "pyscard>=2.3.1",
     "pywebview>=6.1",
 ]
-backend = [
+api = [
     "alembic>=1.17.2",
     "fastapi[standard]>=0.124.2",
     "sqlalchemy>=2.0.45",
@@ -36,10 +36,11 @@ dev = [
 [tool.ruff]
 # don't check import order in the migration script
 line-length = 120
-exclude = ["ui_elements", "addon_skeleton.py"]
-target-version = "py39"
+target-version = "py313"
 
 [tool.ruff.lint]
+per-file-ignores = {"cocktailberry/*" = ["E402"] }
+
 extend-safe-fixes = [
   "UP", # pyupgrade
   "D107", # Missing docstring in __init__

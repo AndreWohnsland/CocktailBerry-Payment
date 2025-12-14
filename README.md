@@ -37,7 +37,7 @@ This project uses [uv](https://docs.astral.sh/uv/) to manage all its dependencie
 To get started, you need to install uv and then install the dependencies.
 
 ```bash
-uv sync
+uv sync --all-extras
 ```
 
 We also use pre-commits to check the code style and run some tests before every commit.
@@ -51,5 +51,24 @@ This will install all dependencies and you can start developing.
 Then just run:
 
 ```bash
-uv run main.py
+uv run -m cocktailberry.api
 ```
+
+for the backend.
+You can run the user management with:
+
+```bash
+uv run -m cocktailberry.gui
+```
+
+in another terminal.
+
+## Open Tasks
+
+- [ ] Docker files for backend and frontend
+- [ ] Compose Files + templates build by cli
+- [ ] CLI to set everything up
+- [ ] Translation validation in CI (all keys present)
+- [ ] Installer scripts for both Linux and Windows
+- [ ] DB Backups
+- [ ] Option to Overwrite (put) nfcs
