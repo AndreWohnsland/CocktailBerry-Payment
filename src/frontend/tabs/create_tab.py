@@ -4,7 +4,7 @@ from nicegui.elements.tabs import Tab
 from src.frontend.components import AmountSelector, NfcScannerSection
 from src.frontend.core.config import config as cfg
 from src.frontend.i18n.translator import translations as t
-from src.frontend.services import NFCService
+from src.frontend.services import NFCService, is_err
 from src.frontend.theme import Styles
 
 
@@ -75,11 +75,17 @@ class CreateTab:
         self.save_button.disable()
         self.nfc_scanner.set_status(t.create_nfc_creating)
 
-        await self.service.create_nfc(
+        result = await self.service.create_nfc(
             nfc_id=self.nfc_scanner.nfc_id,
             is_adult=self.checkbox_adult.value,
             balance=self.amount_selector.value,
         )
+        if is_err(result):
+            self.nfc_scanner.set_status(result.error)
+            ui.notify(result.error, type="negative", position="top-right")
+            self.save_button.enable()
+            return
+
         self.nfc_scanner.set_status(t.create_nfc_saved)
         ui.notify(t.create_nfc_saved, type="positive", position="top-right")
         self.reset_ui()

@@ -10,7 +10,7 @@ from src.frontend.components import AmountSelector, NfcScannerSection
 from src.frontend.core.config import config as cfg
 from src.frontend.i18n.translator import translations as t
 from src.frontend.models.nfc import Nfc
-from src.frontend.services import NFCService
+from src.frontend.services import NFCService, is_err, is_success
 from src.frontend.theme import Styles
 
 
@@ -73,7 +73,14 @@ class TopUpTab:
             ui.notify(t.nfc_timeout, type="warning", position="top-right")
             return
 
-        self.current_user = await self.service.get_nfc(nfc_id)
+        result = await self.service.get_nfc(nfc_id)
+
+        if is_err(result):
+            ui.notify(result.error, type="negative", position="top-right")
+            return
+
+        if is_success(result):
+            self.current_user = result.data
 
         if self.current_user:
             self.nfc_scanner.set_status(t.nfc_found)
@@ -115,35 +122,46 @@ class TopUpTab:
 
         self.update_button.disable()
         self.nfc_scanner.set_status(t.balance_updating)
+        # Request update and handle errors via result object
+        result = await self.service.update_balance(self.nfc_scanner.nfc_id, amount)
 
-        new_balance = await self.service.update_balance(self.nfc_scanner.nfc_id, amount)
+        if is_err(result):
+            ui.notify(result.error, type="negative", position="top-right")
+            self.nfc_scanner.set_status(t.balance_update_failed)
+            self.update_button.enable()
+            return
+        # NOTE: the type guard currently does not recognize that result is Success here
+        # Success: get new balance and refresh display
+        if is_success(result):
+            nfc: Nfc = result.data
+            new_balance = nfc.balance
+            self.current_user = nfc
+            self._update_balance_display()
 
-        # Refresh current user data
-        self.current_user = await self.service.get_nfc(self.nfc_scanner.nfc_id)
-        self._update_balance_display()
+            # Hide the top-up controls and reset scanner after successful update
+            self.topup_container.visible = False
+            self.balance_container.visible = False
+            self.current_user = None
 
-        # Hide the top-up controls and reset scanner after successful update
-        self.topup_container.visible = False
-        self.balance_container.visible = False
-        self.current_user = None
-
-        self.nfc_scanner.reset()
-        self.nfc_scanner.set_status(t.balance_notify_add.format(amount=amount))
-        ui.notify(
-            t.balance_updated.format(balance=new_balance),
-            type="positive",
-            position="top-right",
-        )
-
-        self.update_button.enable()
+            self.nfc_scanner.reset()
+            self.nfc_scanner.set_status(t.balance_notify_add.format(amount=amount))
+            ui.notify(
+                t.balance_updated.format(balance=new_balance),
+                type="positive",
+                position="top-right",
+            )
+            self.update_button.enable()
 
     async def _mock_topup_scan(self) -> str | None:
         """Return a known user card id for top-up testing."""
         await asyncio.sleep(1.0)
-        users = await self.service.get_all_nfc()
-        if not users:
+        result = await self.service.get_all_nfc()
+        if is_err(result):
             return None
-        return random.choice([u.nfc_id for u in users])
+        if is_success(result):
+            users = result.data
+            return random.choice([u.nfc_id for u in users])
+        return None
 
 
 def build_topup_tab(tab: Tab, service: NFCService) -> TopUpTab:

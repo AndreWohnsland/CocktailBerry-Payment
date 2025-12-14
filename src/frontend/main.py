@@ -2,6 +2,7 @@ from pathlib import Path
 
 from nicegui import app, ui
 
+from src.frontend.core.config import config as cfg
 from src.frontend.i18n.translator import translations as t
 from src.frontend.services import NFCService
 from src.frontend.tabs.create_tab import build_create_tab
@@ -37,4 +38,8 @@ def start_nicegui() -> None:
             build_create_tab(tab_create, service)
             build_manage_tab(tab_manage, service)
 
-    ui.run(title=APP_NAME, favicon=static_file_path / "favicon.ico")
+    ui.run(
+        title=APP_NAME,
+        favicon=static_file_path / "favicon.ico",
+        language=cfg.language,  # type: ignore[arg-type]
+    )
