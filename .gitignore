@@ -177,3 +177,6 @@ __pycache__
 
 # some testing files
 tmp_*
+
+# data
+data/*.db
