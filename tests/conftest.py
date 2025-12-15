@@ -11,7 +11,7 @@ from src.backend.service.user_service import UserService
 
 
 @pytest.fixture(scope="function")
-def db_engine() -> Generator[Any, None, None]:
+def db_engine() -> Generator[Any]:
     """Create an in-memory SQLite engine for testing."""
     engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
     SQLModel.metadata.create_all(engine)
@@ -21,7 +21,7 @@ def db_engine() -> Generator[Any, None, None]:
 
 
 @pytest.fixture(scope="function")
-def db_session(db_engine: Any) -> Generator[Session, None, None]:
+def db_session(db_engine: Any) -> Generator[Session]:
     """Create a new database session for a test."""
     with Session(db_engine) as session:
         yield session

@@ -15,7 +15,7 @@ static_file_path = Path(__file__).parent / "static"
 APP_NAME = "CocktailBerry Payment Manager"
 
 
-def start_nicegui() -> None:
+def _ui() -> None:
     # Apply theme before creating any UI elements
     apply_theme()
 
@@ -38,8 +38,12 @@ def start_nicegui() -> None:
             build_create_tab(tab_create, service)
             build_manage_tab(tab_manage, service)
 
+
+def start_nicegui() -> None:
     ui.run(
+        _ui,
         title=APP_NAME,
+        reload=cfg.dev_mode,
         favicon=static_file_path / "favicon.ico",
         language=cfg.language,  # type: ignore[arg-type]
     )
