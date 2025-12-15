@@ -1,3 +1,5 @@
+import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -12,6 +14,22 @@ class ConfigItem:
     name: str
     description: str
     default: str = field(default="")
+
+
+@dataclass
+class ConfigSection:
+    active: bool = False
+    use_docker: bool = False
+    supports_docker: bool = False
+    setup: Callable = field(default=lambda: print("Setup not implemented"))
+    docker_setup: Callable = field(default=lambda: print("Docker setup not implemented"))
+
+    def setup_service(self) -> None:
+        """Set up the service based on selected options."""
+        if self.use_docker:
+            self.docker_setup()
+        else:
+            self.setup()
 
 
 def read_env_file() -> dict[str, str]:
@@ -52,3 +70,15 @@ def prompt_for_values(items: list[ConfigItem], existing: dict[str, str]) -> dict
             response = current
         results[item.name] = response
     return results
+
+
+def set_user_env_vars(values: dict[str, str]) -> None:
+    for k, v in values.items():
+        subprocess.run(
+            [
+                "powershell",
+                "-Command",
+                f"[Environment]::SetEnvironmentVariable('{k}', '{v}', 'User')",
+            ],
+            check=True,
+        )

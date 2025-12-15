@@ -1,0 +1,31 @@
+services:
+  # gui:
+  #   container_name: cocktailberry-payment-gui
+  #   restart: always
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.gui
+  #   ports:
+  #     - 8080:80
+  #   depends_on:
+  #     - api
+  #   environment:
+  #     - API_KEY=supersecretkey
+  #     - API_PORT=9876
+  #     - API_ADDRESS=http://api
+  #     - MOCK_NFC=true
+  #     - LANGUAGE=de
+  #     - DEFAULT_BALANCE=20.0
+  api:
+    container_name: cocktailberry-payment-api
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "${API_PORT:-9876}:9876"
+    environment:
+      - DATABASE_PATH=/data/payment.db
+      - API_KEY
+    volumes:
+      - ./data:/data
