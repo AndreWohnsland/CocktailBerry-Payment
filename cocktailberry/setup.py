@@ -63,6 +63,9 @@ def _setup_api() -> None:
         _setup_linux_service("api", Path.home() / ".config/autostart")
     elif system == "Windows":
         _setup_api_windows()
+    else:
+        typer.secho(f"❌ Unsupported OS: {system}", fg=colors.RED)
+        raise typer.Exit(code=1)
 
 
 def _setup_gui() -> None:
@@ -71,6 +74,9 @@ def _setup_gui() -> None:
         _setup_linux_service("gui", Path.home() / ".local/share/applications")
     elif system == "Windows":
         _setup_gui_windows()
+    else:
+        typer.secho(f"❌ Unsupported OS: {system}", fg=colors.RED)
+        typer.Exit(code=1)
 
 
 def _setup_linux_service(service_name: str, destination: Path) -> None:
@@ -146,6 +152,11 @@ def setup() -> None:
         if not data.active:
             continue
         typer.secho(f"🔧 Setting up {service}...", fg=colors.BLUE)
+        if not typer.confirm(
+            "Use auto setup? Choose no if you use the exe (prebuilt file)",
+            default=True,
+        ):
+            continue
         data.setup_service()
         typer.secho(f"✅ {service.capitalize()} setup complete!", fg=colors.GREEN)
 
