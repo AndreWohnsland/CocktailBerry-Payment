@@ -6,6 +6,7 @@ Provides stateless NFC scanning with two modes:
 """
 
 import asyncio
+import logging
 import time
 from collections.abc import Callable
 from threading import Event, Thread
@@ -20,6 +21,8 @@ from smartcard.util import toHexString
 
 from src.frontend.core.config import config as cfg
 
+_logger = logging.getLogger(__name__)
+
 
 class USBReader:
     """Low-level USB NFC reader interface."""
@@ -29,6 +32,7 @@ class USBReader:
     def __init__(self) -> None:
         available: list[PCSCReader] = readers()
         if not available:
+            _logger.error("No PC/SC reader found")
             raise RuntimeError("No PC/SC reader found")
         self.reader_name = available[0]
 

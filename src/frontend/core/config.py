@@ -11,6 +11,7 @@ class Config(BaseSettings):
     api_port: int = DEFAULT_BACKEND_PORT
     api_address: str = "http://localhost"
     mock_nfc: bool = False
+    dev_mode: bool = False
     language: str = "en"
     default_balance: float = 10.0
     nfc_timeout: float = 10.0

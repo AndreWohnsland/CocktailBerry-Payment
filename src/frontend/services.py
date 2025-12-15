@@ -1,10 +1,10 @@
 import asyncio
 import contextlib
 import random
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable, Generic, ParamSpec, Protocol, TypeGuard, TypeVar, Union
+from typing import Any, Protocol, TypeGuard
 
 import httpx
 
@@ -13,12 +13,9 @@ from src.frontend.core.nfc import NFCScanner
 from src.frontend.i18n.translator import translations as t
 from src.frontend.models.nfc import Nfc
 
-P = ParamSpec("P")
-T = TypeVar("T")
-
 
 @dataclass
-class Success(Generic[T]):
+class Success[T]:
     data: T
 
 
@@ -27,10 +24,10 @@ class Err:
     error: str
 
 
-Result = Union[Success[T], Err]
+type Result[T] = Success[T] | Err
 
 
-def run_catching(
+def run_catching[**P, T](
     fn: Callable[P, Awaitable[T]],
 ) -> Callable[P, Awaitable[Result[T]]]:
     @wraps(fn)
@@ -53,7 +50,7 @@ def run_catching(
     return wrapper
 
 
-def is_success(result: Result[T]) -> TypeGuard[Success[T]]:
+def is_success[T](result: Result[T]) -> TypeGuard[Success[T]]:
     return isinstance(result, Success)
 
 
