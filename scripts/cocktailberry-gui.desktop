@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=CocktailBerry
+Comment=CocktailBerry User Interface
+Exec=uv run --extra gui -m cocktailberry.gui
+Path=%PROJECT_ROOT%
+Icon=%PROJECT_ROOT%/assets/linux/berry.png
+Terminal=false
+Categories=Utility;
