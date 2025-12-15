@@ -13,6 +13,7 @@ class Config(BaseSettings):
     mock_nfc: bool = False
     dev_mode: bool = False
     native_mode: bool = False
+    full_screen: bool = False
     language: str = "en"
     default_balance: float = 10.0
     nfc_timeout: float = 10.0

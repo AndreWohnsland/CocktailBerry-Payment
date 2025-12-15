@@ -45,6 +45,8 @@ def start_nicegui() -> None:
         title=APP_NAME,
         reload=cfg.dev_mode,
         native=cfg.native_mode,
+        fullscreen=cfg.full_screen,
+        window_size=(900, 1200) if cfg.native_mode and not cfg.full_screen else None,
         favicon=static_file_path / "favicon.ico",
         language=cfg.language,  # type: ignore[arg-type]
     )
