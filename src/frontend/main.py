@@ -44,6 +44,7 @@ def start_nicegui() -> None:
         _ui,
         title=APP_NAME,
         reload=cfg.dev_mode,
+        native=cfg.native_mode,
         favicon=static_file_path / "favicon.ico",
         language=cfg.language,  # type: ignore[arg-type]
     )
