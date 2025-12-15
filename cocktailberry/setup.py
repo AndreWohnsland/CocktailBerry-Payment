@@ -23,6 +23,7 @@ CONFIG_VARIABLES: dict[str, list[ConfigItem]] = {
         ConfigItem("API_PORT", "Port for backend service", default="9876"),
         ConfigItem("API_ADDRESS", "Address for backend service", default="http://localhost"),
         ConfigItem("LANGUAGE", "Default language (e.g., en, de)", default="en"),
+        ConfigItem("NATIVE_MODE", "Runs in a app window instead of website, exit on close", default="false"),
         ConfigItem("DEFAULT_BALANCE", "Default balance for new users", default="10.0"),
         ConfigItem("NFC_TIMEOUT", "NFC operation timeout in seconds", default="10.0"),
     ],
