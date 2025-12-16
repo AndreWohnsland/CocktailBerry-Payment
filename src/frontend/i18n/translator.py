@@ -50,6 +50,21 @@ class Translations:
     tab_top_up: str
     balance_update_failed: str
     request_error: str
+    tab_config: str
+    config_header: str
+    config_description: str
+    config_saved: str
+    config_invalid_value: str
+    config_value_true: str
+    config_value_false: str
+    config_label_api_key: str
+    config_label_api_address: str
+    config_label_api_port: str
+    config_label_native_mode: str
+    config_label_full_screen: str
+    config_label_language: str
+    config_label_default_balance: str
+    config_label_nfc_timeout: str
 
 
 def load_translations(lang: str = cfg.language) -> Translations:

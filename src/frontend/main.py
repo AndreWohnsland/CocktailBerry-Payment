@@ -5,6 +5,7 @@ from nicegui import app, ui
 from src.frontend.core.config import config as cfg
 from src.frontend.i18n.translator import translations as t
 from src.frontend.services import NFCService
+from src.frontend.tabs.config_tab import build_config_tab
 from src.frontend.tabs.create_tab import build_create_tab
 from src.frontend.tabs.manage_tab import build_manage_tab
 from src.frontend.tabs.topup_tab import build_topup_tab
@@ -29,14 +30,18 @@ def _ui() -> None:
 
     with ui.column().classes("w-full max-w-2xl mx-auto mt-4"):
         with ui.tabs().classes("w-full") as tabs:
-            tab_topup = ui.tab(t.tab_top_up, icon="payments").classes("px-12")
-            tab_create = ui.tab(t.tab_create, icon="person_add").classes("px-12")
-            tab_manage = ui.tab(t.tab_manage, icon="manage_accounts").classes("px-12")
+            tab_topup = ui.tab(t.tab_top_up, icon="payments").classes("px-8")
+            tab_create = ui.tab(t.tab_create, icon="person_add").classes("px-8")
+            tab_manage = ui.tab(t.tab_manage, icon="manage_accounts").classes("px-8")
+            if cfg.can_change_settings:
+                tab_config = ui.tab(t.tab_config, icon="settings").classes("px-8")
 
         with ui.tab_panels(tabs, value=tab_topup).classes("w-full px-4 rounded-2xl"):
             build_topup_tab(tab_topup, service)
             build_create_tab(tab_create, service)
             build_manage_tab(tab_manage, service)
+            if cfg.can_change_settings:
+                build_config_tab(tab_config)
 
 
 def start_nicegui() -> None:

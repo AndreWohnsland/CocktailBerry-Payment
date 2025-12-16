@@ -17,6 +17,7 @@ class Config(BaseSettings):
     language: str = "en"
     default_balance: float = 10.0
     nfc_timeout: float = 10.0
+    can_change_settings: bool = True
 
     @property
     def api_url(self) -> str:
