@@ -12,7 +12,8 @@ DOCKER_COMPOSE_FILE = ROOT / "docker-compose.yaml"
 
 sys.path.insert(0, str(SRC))
 
-from scripts.helpers import ENV_FILE, ConfigItem, ConfigSection, prompt_for_values, read_env_file, write_env_file
+from src.shared import ENV_PATH
+from src.shared.helpers import ConfigItem, ConfigSection, prompt_for_values, read_env_file, write_env_file
 
 APP = typer.Typer()
 
@@ -27,6 +28,7 @@ CONFIG_VARIABLES: dict[str, list[ConfigItem]] = {
         ConfigItem("FULL_SCREEN", "Run natively in full screen mode", default="false"),
         ConfigItem("DEFAULT_BALANCE", "Default balance for new users", default="10.0"),
         ConfigItem("NFC_TIMEOUT", "NFC operation timeout in seconds", default="10.0"),
+        ConfigItem("CAN_CHANGE_SETTINGS", "Allow changing settings in the GUI", default="true"),
     ],
     "backend": [
         ConfigItem("API_KEY", "API key for backend service", default="CocktailBerry-Secret-Change-Me"),
@@ -44,7 +46,7 @@ def _setup_docker_api() -> None:
         "-p",
         "cocktailberry-payment",
         "--env-file",
-        str(ENV_FILE),
+        str(ENV_PATH),
         "up",
         "--build",
         "-d",
@@ -148,6 +150,7 @@ def setup() -> None:
         typer.echo(f" - {k}={v}")
     print("")
     write_env_file(env)
+    typer.secho(f"Saved values in {ENV_PATH.resolve()}", fg=colors.MAGENTA)
 
     for service, data in services.items():
         if not data.active:

@@ -1,12 +1,11 @@
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import typer
 from typer import colors
 
-ENV_FILE = Path(__file__).parent.parent / ".env"
+from src.shared import ENV_PATH
 
 
 @dataclass
@@ -34,10 +33,10 @@ class ConfigSection:
 
 def read_env_file() -> dict[str, str]:
     """Read a .env file and return dict of existing values."""
-    if not ENV_FILE.exists():
+    if not ENV_PATH.exists():
         return {}
     result = {}
-    with ENV_FILE.open() as f:
+    with ENV_PATH.open() as f:
         for read_line in f:
             line = read_line.strip()
             if not line or line.startswith("#"):
@@ -50,10 +49,9 @@ def read_env_file() -> dict[str, str]:
 
 def write_env_file(values: dict[str, str]) -> None:
     """Save updated values to .env."""
-    with ENV_FILE.open("w") as f:
+    with ENV_PATH.open("w") as f:
         for k, v in values.items():
             f.write(f"{k}={v}\n")
-    typer.secho(f"Saved values in {ENV_FILE.resolve()}", fg=colors.MAGENTA)
 
 
 def prompt_for_values(items: list[ConfigItem], existing: dict[str, str]) -> dict[str, str]:
