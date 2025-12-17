@@ -28,6 +28,7 @@ api = [
 dev = [
     "mypy>=1.19.0",
     "pre-commit>=4.5.0",
+    "pyinstaller>=6.17.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.8",
