@@ -72,3 +72,9 @@ in another terminal.
 - [ ] Installer scripts for both Linux and Windows
 - [ ] DB Backups
 - [ ] Option to Overwrite (put) nfcs
+
+## Maybe pynstaller?
+
+```bash
+ nicegui-pack --onefile --name "payment" --add-data .\src\frontend\i18n\translations\de.yaml:.\src\frontend\i18n\translations\ --add-data .\src\frontend\i18n\translations\en.yaml:.\src\frontend\i18n\translations --add-data .\src\frontend\static\berry.svg:.\src\frontend\static --add-data .\src\frontend\static\favicon.ico:.\src\frontend\static .\cocktailberry\gui.py
+```

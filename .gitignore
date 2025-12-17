@@ -32,6 +32,8 @@ node_modules
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+!pyinstaller-GUI.spec
+!pyinstaller-API.spec
 
 # Installer logs
 pip-log.txt
