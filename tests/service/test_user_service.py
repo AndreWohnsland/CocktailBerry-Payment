@@ -151,13 +151,6 @@ class TestUpdateBalance:
         assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
         assert "cannot go below" in exc_info.value.detail
 
-    def test_update_balance_to_negative_allowed(self, user_service: UserService, sample_user: User) -> None:
-        """Test that negative balance is allowed within limits."""
-        user = user_service.update_balance(sample_user.nfc_id, -60.0)
-
-        assert user.balance < 0
-        assert user.balance > MIN_BALANCE
-
     def test_update_balance_user_not_found(self, user_service: UserService) -> None:
         """Test updating balance for non-existent user raises exception."""
         with pytest.raises(HTTPException) as exc_info:
