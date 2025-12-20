@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: 🛎️ Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🔑 Restore PFX certificate
         shell: pwsh
@@ -110,7 +110,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
-      - name: 🍸 Build and push Docker image CocktailBerry
+      - name: 🍸 Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}

@@ -1,0 +1,62 @@
+name: Manual PyInstaller Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: API
+            certificate: CERTIFICATE_API
+            password: CERTIFICATE_API_PW
+          - service: GUI
+            certificate: CERTIFICATE_GUI
+            password: CERTIFICATE_GUI_PW
+
+    env:
+      PYI_NAME: cocktailberry-payment-${{ matrix.service }}
+
+    steps:
+      - name: 🛎️ Checkout code
+        uses: actions/checkout@v6
+
+      - name: 🔑 Restore PFX certificate
+        shell: pwsh
+        run: |
+          $pfxBase64 = "${{ secrets[matrix.certificate]}}"
+          $pfxPassword = "${{ secrets[matrix.password]}}"
+
+          $bytes = [Convert]::FromBase64String($pfxBase64)
+          $pfxPath = "$env:TEMP\codesign.pfx"
+          [IO.File]::WriteAllBytes($pfxPath, $bytes)
+
+          certutil -f -p $pfxPassword -importpfx $pfxPath
+
+      - name: 🐍 Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: 📦 Install dependencies
+        run: uv sync --all-extras
+
+      - name: 🛠️ Build with PyInstaller
+        run: uv run pyinstaller pyinstaller-${{ matrix.service }}.spec
+
+      - name: 🔏 Sign EXE
+        shell: pwsh
+        run: |
+          signtool sign `
+            /fd SHA256 `
+            /tr http://timestamp.digicert.com `
+            /td SHA256 `
+            /a `
+            path\to\your.exe
+
+      - name: 📤 Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.PYI_NAME }}
+          path: dist/${{ env.PYI_NAME }}
