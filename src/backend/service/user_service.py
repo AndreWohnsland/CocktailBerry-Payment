@@ -1,3 +1,4 @@
+from enum import StrEnum
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -5,7 +6,14 @@ from sqlmodel import Session, select
 
 from src.backend.constants import MIN_BALANCE
 from src.backend.db.database import get_db
-from src.backend.models.user import User, UserCreate, UserUpdate
+from src.backend.models.user import PaymentLog, User, UserCreate, UserUpdate
+
+
+class PaymentLogOptions(StrEnum):
+    CREATED = "Created"
+    UPDATED = "Updated"
+    DELETED = "Deleted"
+    TOP_UP = "Top Up"
 
 
 class UserService:
@@ -29,6 +37,13 @@ class UserService:
             )
         db_user = User.model_validate(user)
         self.db.add(db_user)
+        self.log_payment_event(
+            nfc_id=db_user.nfc_id,
+            amount=db_user.balance,
+            current_balance=db_user.balance,
+            description=PaymentLogOptions.CREATED,
+            commit=False,
+        )
         self.db.commit()
         self.db.refresh(db_user)
         return db_user
@@ -40,6 +55,13 @@ class UserService:
 
         db_user.sqlmodel_update(user_update.model_dump(exclude_unset=True))
         self.db.add(db_user)
+        self.log_payment_event(
+            nfc_id=db_user.nfc_id,
+            amount=user_update.balance or 0.0,
+            current_balance=db_user.balance,
+            description=PaymentLogOptions.UPDATED,
+            commit=False,
+        )
         self.db.commit()
         self.db.refresh(db_user)
         return db_user
@@ -49,6 +71,13 @@ class UserService:
         if not db_user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         self.db.delete(db_user)
+        self.log_payment_event(
+            nfc_id=db_user.nfc_id,
+            amount=0.0,
+            current_balance=0.0,
+            description=PaymentLogOptions.DELETED,
+            commit=False,
+        )
         self.db.commit()
 
     def update_balance(self, nfc_id: str, amount: float) -> User:
@@ -69,11 +98,18 @@ class UserService:
 
         db_user.balance = new_balance
         self.db.add(db_user)
+        self.log_payment_event(
+            nfc_id=db_user.nfc_id,
+            amount=amount,
+            current_balance=new_balance,
+            description=PaymentLogOptions.TOP_UP,
+            commit=False,
+        )
         self.db.commit()
         self.db.refresh(db_user)
         return db_user
 
-    def book_cocktail(self, nfc_id: str, amount: float, is_alcoholic: bool) -> User:
+    def book_cocktail(self, nfc_id: str, amount: float, is_alcoholic: bool, name: str) -> User:
         db_user = self.get_user_by_nfc(nfc_id)
         if not db_user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -92,9 +128,41 @@ class UserService:
 
         db_user.balance -= amount
         self.db.add(db_user)
+        self.log_payment_event(
+            nfc_id=nfc_id,
+            amount=-amount,
+            current_balance=db_user.balance,
+            description=name,
+            commit=False,
+        )
         self.db.commit()
         self.db.refresh(db_user)
         return db_user
+
+    def log_payment_event(
+        self,
+        nfc_id: str,
+        amount: float,
+        current_balance: float,
+        description: str,
+        commit: bool = True,
+    ) -> None:
+        transaction = PaymentLog(nfc_id=nfc_id, amount=amount, current_balance=current_balance, description=description)
+        self.db.add(transaction)
+        if commit:
+            self.db.commit()
+
+    def get_payment_logs(self, nfc_id: str) -> list[PaymentLog]:
+        return list(
+            self.db.exec(
+                select(PaymentLog)
+                .where(PaymentLog.nfc_id == nfc_id)
+                .order_by(PaymentLog.created_at.desc(), PaymentLog.current_balance.asc())  # type: ignore
+            ).all()
+        )
+
+    def get_all_payment_logs(self) -> list[PaymentLog]:
+        return list(self.db.exec(select(PaymentLog)).all())
 
 
 def get_user_service(db: Annotated[Session, Depends(get_db)]) -> UserService:

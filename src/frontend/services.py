@@ -101,6 +101,15 @@ class NFCService:
         resp.raise_for_status()
         return Nfc.model_validate(resp.json())
 
+    @run_catching
+    async def get_nfc_history(self, nfc_id: str) -> list[dict[str, Any]]:
+        """Fetch transaction history for a user by NFC ID."""
+        resp = await self._client.get(f"/users/{nfc_id}/history")
+        if resp.status_code == 404:  # noqa: PLR2004
+            raise RuntimeError(t.nfc_card_not_registered.format(nfc_id=nfc_id))
+        resp.raise_for_status()
+        return resp.json()
+
     # --- Mutation methods --------------------------------------------
 
     @run_catching
