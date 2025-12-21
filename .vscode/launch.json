@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "configurations": [
+    {
+      "name": "Debug FastApi (Backend) over uvicorn",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["src.backend.main:app", "--reload", "--port", "9876"]
+    },
+    {
+      "name": "Debug FastApi (Backend) over fastapi CLI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fastapi",
+      "cwd": "${workspaceFolder}/src/backend/",
+      "args": ["dev", "./main.py", "--port", "9876"]
+    },
+    {
+      "name": "Debug GUI",
+      "type": "debugpy",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "module": "cocktailberry.gui"
+    }
+  ]
+}
