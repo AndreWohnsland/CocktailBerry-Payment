@@ -48,6 +48,11 @@ class TestCreateUser:
         assert user.is_adult is True
         assert user.balance == 0.0
 
+        log = next(log for log in user_service.get_payment_logs(user.nfc_id) if log.nfc_id == user.nfc_id)
+        assert log is not None
+        assert log.description == "Created"
+        assert log.amount == 0.0
+
     def test_create_user_duplicate_nfc(self, user_service: UserService, sample_user: User) -> None:
         """Test creating a user with duplicate NFC ID raises exception."""
         user_create = UserCreate(nfc_id=sample_user.nfc_id, is_adult=False)
@@ -103,6 +108,11 @@ class TestUpdateUser:
         assert user.is_adult is False
         assert user.balance == new_balance
 
+        log = next(log for log in user_service.get_payment_logs(user.nfc_id) if log.nfc_id == user.nfc_id)
+        assert log is not None
+        assert log.description == "Updated Info"
+        assert log.amount == new_balance
+
 
 class TestDeleteUser:
     """Tests for deleting users."""
@@ -111,9 +121,9 @@ class TestDeleteUser:
         """Test deleting a user."""
         user_service.delete_user(sample_user.nfc_id)
 
-        # Verify user is deleted
-        user = user_service.get_user_by_nfc(sample_user.nfc_id)
-        assert user is None
+        log = next(log for log in user_service.get_payment_logs(sample_user.nfc_id) if log.nfc_id == sample_user.nfc_id)
+        assert log is not None
+        assert log.description == "Deleted"
 
     def test_delete_user_not_found(self, user_service: UserService) -> None:
         """Test deleting non-existent user raises exception."""
@@ -132,6 +142,11 @@ class TestUpdateBalance:
         user = user_service.update_balance(sample_user.nfc_id, 25.0)
 
         assert user.balance == original_balance + 25.0
+
+        log = next(log for log in user_service.get_payment_logs(user.nfc_id) if log.nfc_id == user.nfc_id)
+        assert log is not None
+        assert log.description == "Updated Balance"
+        assert log.amount == 25.0  # noqa: PLR2004
 
     def test_update_balance_subtract(self, user_service: UserService, sample_user: User) -> None:
         """Test subtracting from user balance."""
@@ -167,7 +182,7 @@ class TestBookCocktail:
         original_balance = sample_user.balance
         amount = 5.50
 
-        user = user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=False)
+        user = user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=False, name="cocktail")
 
         assert user.balance == original_balance - amount
 
@@ -176,14 +191,14 @@ class TestBookCocktail:
         original_balance = sample_user.balance
         amount = 7.50
 
-        user = user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=True)
+        user = user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=True, name="cocktail")
 
         assert user.balance == original_balance - amount
 
     def test_book_alcoholic_cocktail_minor(self, user_service: UserService, sample_minor: User) -> None:
         """Test minor cannot book alcoholic cocktail."""
         with pytest.raises(HTTPException) as exc_info:
-            user_service.book_cocktail(sample_minor.nfc_id, 5.0, is_alcoholic=True)
+            user_service.book_cocktail(sample_minor.nfc_id, 5.0, is_alcoholic=True, name="cocktail")
 
         assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
         assert "underage" in exc_info.value.detail.lower()
@@ -193,7 +208,7 @@ class TestBookCocktail:
         amount = sample_user.balance + 100.0
 
         with pytest.raises(HTTPException) as exc_info:
-            user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=False)
+            user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=False, name="cocktail")
 
         assert exc_info.value.status_code == status.HTTP_402_PAYMENT_REQUIRED
         assert "Insufficient balance" in exc_info.value.detail
@@ -201,7 +216,7 @@ class TestBookCocktail:
     def test_book_cocktail_user_not_found(self, user_service: UserService) -> None:
         """Test booking cocktail for non-existent user raises exception."""
         with pytest.raises(HTTPException) as exc_info:
-            user_service.book_cocktail("NONEXISTENT", 5.0, is_alcoholic=False)
+            user_service.book_cocktail("NONEXISTENT", 5.0, is_alcoholic=False, name="cocktail")
 
         assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
 
@@ -210,7 +225,7 @@ class TestBookCocktail:
         original_balance = sample_minor.balance
         amount = 4.50
 
-        user = user_service.book_cocktail(sample_minor.nfc_id, amount, is_alcoholic=False)
+        user = user_service.book_cocktail(sample_minor.nfc_id, amount, is_alcoholic=False, name="cocktail")
 
         assert user.balance == original_balance - amount
 
@@ -218,6 +233,51 @@ class TestBookCocktail:
         """Test booking cocktail with exact balance."""
         amount = sample_user.balance
 
-        user = user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=False)
+        user = user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=False, name="cocktail")
 
         assert user.balance == 0.0
+
+    def test_book_cocktail_create_log(self, user_service: UserService, sample_user: User) -> None:
+        """Test that booking a cocktail creates a payment log."""
+        amount = 5.0
+        name = "Mojito"
+
+        user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=False, name=name)
+        logs = user_service.get_payment_logs(sample_user.nfc_id)
+        first_log = next(log for log in logs if log.nfc_id == sample_user.nfc_id)
+        assert first_log is not None
+        assert first_log.description == f"Cocktail: {name}"
+        assert first_log.amount == -amount
+        first_log.created_at
+
+
+class TestPaymentLogs:
+    """Tests for payment log retrieval."""
+
+    def test_get_payment_logs(self, user_service: UserService, sample_user: User) -> None:
+        """Test retrieving payment logs for a user."""
+        # Create some payment logs
+        user_service.log_payment_event(sample_user.nfc_id, 20.0, 20.0, "Account Top-up")
+        user_service.log_payment_event(sample_user.nfc_id, 5.0, 15.0, "Test Cocktail")
+
+        logs = user_service.get_payment_logs(sample_user.nfc_id)
+        assert len(logs) >= 2  # noqa: PLR2004
+        descriptions = [log.description for log in logs]
+        assert "Account Top-up" in descriptions
+        assert any("Cocktail" in desc for desc in descriptions)
+
+        # also test that created_at is populated
+        for log in logs:
+            assert log.created_at is not None
+
+    def test_get_all_payment_logs(self, user_service: UserService, sample_user: User, sample_minor: User) -> None:
+        """Test retrieving all payment logs."""
+        # Create some payment logs for both users
+        user_service.log_payment_event(sample_user.nfc_id, 15.0, 15.0, "Account Top-up")
+        user_service.log_payment_event(sample_minor.nfc_id, 10.0, 25.0, "Account Top-up")
+
+        all_logs = user_service.get_all_payment_logs()
+        assert len(all_logs) >= 2  # noqa: PLR2004
+        nfc_ids = [log.nfc_id for log in all_logs]
+        assert sample_user.nfc_id in nfc_ids
+        assert sample_minor.nfc_id in nfc_ids

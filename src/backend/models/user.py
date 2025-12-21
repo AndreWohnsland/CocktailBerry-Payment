@@ -1,3 +1,7 @@
+from datetime import datetime
+
+from pydantic import ConfigDict
+from sqlalchemy import Column, DateTime, func
 from sqlmodel import Field, SQLModel
 
 
@@ -24,3 +28,25 @@ class UserUpdate(SQLModel):
 
     is_adult: bool | None = Field(default=None, description="Whether user is 18 or older")
     balance: float | None = Field(default=None, description="User balance")
+
+
+class PaymentLog(SQLModel, table=True):
+    """Database model for payment logs."""
+
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S")})  # type: ignore
+
+    __tablename__ = "payment_logs"  # type: ignore[assignment]
+
+    id: int | None = Field(default=None, primary_key=True)
+    nfc_id: str = Field(index=True, description="NFC card ID")
+    created_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(
+            DateTime(timezone=True),
+            server_default=func.now(),
+            nullable=False,
+        ),
+    )
+    amount: float = Field(description="Transaction amount")
+    current_balance: float = Field(description="User balance after the transaction")
+    description: str = Field(description="Description of the transaction")

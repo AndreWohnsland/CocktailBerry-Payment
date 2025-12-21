@@ -50,4 +50,4 @@ def book_cocktail(
     Deducts the specified amount from the user's balance for a cocktail purchase.
     Performs age verification if the cocktail is alcoholic.
     """
-    return user_service.book_cocktail(nfc_id, booking.price, booking.is_alcoholic)
+    return user_service.book_cocktail(nfc_id, booking.price, booking.is_alcoholic, booking.name)

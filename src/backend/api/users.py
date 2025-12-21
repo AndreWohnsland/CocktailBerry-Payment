@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from src.backend.models.user import User, UserCreate, UserUpdate
+from src.backend.models.user import PaymentLog, User, UserCreate, UserUpdate
 from src.backend.service.user_service import UserService, get_user_service
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -47,3 +47,12 @@ def update_user(
 def delete_user(nfc_id: str, user_service: Annotated[UserService, Depends(get_user_service)]) -> None:
     """Delete a user by NFC ID."""
     user_service.delete_user(nfc_id)
+
+
+@router.get("/{nfc_id}/history", tags=["history"])
+def get_user_history(nfc_id: str, user_service: Annotated[UserService, Depends(get_user_service)]) -> list[PaymentLog]:
+    """Get transaction history for a user by NFC ID."""
+    logs = user_service.get_payment_logs(nfc_id)
+    if not logs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No logs for {nfc_id} found")
+    return logs
