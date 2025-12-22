@@ -32,6 +32,8 @@ node_modules
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+!pyinstaller-GUI.spec
+!pyinstaller-API.spec
 
 # Installer logs
 pip-log.txt
@@ -121,6 +123,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+.idea/
 .env
 .venv
 env/
@@ -176,3 +179,6 @@ __pycache__
 
 # some testing files
 tmp_*
+
+# data
+data/*.db

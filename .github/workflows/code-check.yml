@@ -7,44 +7,39 @@ on:
 jobs:
   ruff:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.13"]
     steps:
       - name: ⤵️ Check out code from GitHub
         uses: actions/checkout@v4
-      - name: Install the latest version of uv using Python ${{ matrix.python-version }}
+      - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.13
       - name: 🔍 Lint with ruff
         run: uv run ruff check src
 
   mypy:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.13"]
     steps:
       - name: ⤵️ Check out code from GitHub
         uses: actions/checkout@v4
-      - name: Install the latest version of uv using Python ${{ matrix.python-version }}
+      - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.13
+      - name: sync dependencies
+        run: uv sync --extra api --extra gui --group dev
       - name: 🔍 Lint with MyPy
         run: uv run mypy src
   pytest:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.13"]
     steps:
       - name: ⤵️ Check out code from GitHub
         uses: actions/checkout@v4
-      - name: Install the latest version of uv using Python ${{ matrix.python-version }}
+      - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.13
+      - name: sync dependencies
+        run: uv sync --extra api --extra gui --group dev
       - name: 🔍 Run PyTest
         run: uv run pytest
