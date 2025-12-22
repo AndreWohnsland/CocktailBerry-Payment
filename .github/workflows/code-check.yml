@@ -26,8 +26,10 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: 3.13
+      - name: sync dependencies
+        run: uv sync --extra api --extra gui --group dev
       - name: 🔍 Lint with MyPy
-        run: uv run --all-extras mypy src
+        run: uv run mypy src
   pytest:
     runs-on: ubuntu-latest
     steps:
@@ -37,5 +39,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: 3.13
+      - name: sync dependencies
+        run: uv sync --extra api --extra gui --group dev
       - name: 🔍 Run PyTest
-        run: uv run --all-extras pytest
+        run: uv run pytest

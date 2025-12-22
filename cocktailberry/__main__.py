@@ -20,7 +20,7 @@ def entry_point(
     typer.secho("- Run the API server:", fg=colors.BLUE)
     typer.echo("  > uv run --extra api -m cocktailberry.api")
     typer.secho("- Run the User Interface:", fg=colors.BLUE)
-    typer.echo("  > uv run --extra gui -m cocktailberry.gui")
+    typer.echo("  > uv run --extra gui --extra nfc -m cocktailberry.gui")
 
     if shutil.which("uv") is None:
         typer.secho("\n'uv' is not installed.", fg=colors.RED)

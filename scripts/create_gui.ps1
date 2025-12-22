@@ -5,7 +5,7 @@ param (
 $WshShell = New-Object -ComObject WScript.Shell
 
 $TargetExe = "uv"
-$GuiArgs   = "run --extra gui -m cocktailberry.gui"
+$GuiArgs   = "run --extra gui --extra nfc -m cocktailberry.gui"
 $WorkDir   = $ProjectRoot
 $Icon      = "$ProjectRoot\scripts\assets\berry.ico"
 

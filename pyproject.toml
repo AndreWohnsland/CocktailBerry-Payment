@@ -13,8 +13,10 @@ dependencies = [
 gui = [
     "httpx>=0.28.1",
     "nicegui>=3.4.0",
-    "pyscard>=2.3.1",
     "pywebview>=6.1",
+]
+nfc = [
+  "pyscard>=2.3.1",
 ]
 api = [
     "alembic>=1.17.2",
