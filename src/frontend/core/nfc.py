@@ -12,12 +12,15 @@ from collections.abc import Callable
 from threading import Event, Thread
 from typing import ClassVar
 
-from smartcard.CardRequest import CardRequest
-from smartcard.CardType import AnyCardType
-from smartcard.PassThruCardService import PassThruCardService
-from smartcard.pcsc.PCSCReader import PCSCReader
-from smartcard.System import readers
-from smartcard.util import toHexString
+try:
+    from smartcard.CardRequest import CardRequest
+    from smartcard.CardType import AnyCardType
+    from smartcard.PassThruCardService import PassThruCardService
+    from smartcard.pcsc.PCSCReader import PCSCReader
+    from smartcard.System import readers
+    from smartcard.util import toHexString
+except (ImportError, ModuleNotFoundError) as e:
+    print("pyscard library is required for NFC functionality. Please install the 'nfc' extra.")
 
 from src.frontend.core.config import config as cfg
 
