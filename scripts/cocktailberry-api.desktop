@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=CocktailBerry
+Comment=CocktailBerry API
+Exec=uv run --extra api -m cocktailberry.api
+Path=%PROJECT_ROOT%
+Icon=%PROJECT_ROOT%/scripts/assets/berry.png
+Terminal=false
+Categories=Utility;

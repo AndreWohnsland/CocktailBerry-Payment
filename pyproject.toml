@@ -5,11 +5,24 @@ description = "Payment Service for CocktailBerry"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "pydantic-settings>=2.12.0",
+    "typer>=0.20.0",
+]
+
+[project.optional-dependencies]
+gui = [
+    "httpx>=0.28.1",
+    "nicegui>=3.4.0",
+    "pywebview>=6.1",
+]
+nfc = [
+  "pyscard>=2.3.1",
+]
+api = [
     "alembic>=1.17.2",
-    "fastapi>=0.124.0",
-    "pyscard>=2.3.1",
-    "sqlalchemy>=2.0.44",
-    "streamlit>=1.52.1",
+    "fastapi[standard]>=0.124.2",
+    "sqlalchemy>=2.0.45",
+    "sqlmodel>=0.0.27",
     "uvicorn>=0.38.0",
 ]
 
@@ -17,6 +30,7 @@ dependencies = [
 dev = [
     "mypy>=1.19.0",
     "pre-commit>=4.5.0",
+    "pyinstaller>=6.17.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.8",
@@ -25,10 +39,11 @@ dev = [
 [tool.ruff]
 # don't check import order in the migration script
 line-length = 120
-exclude = ["ui_elements", "addon_skeleton.py"]
-target-version = "py39"
+target-version = "py313"
 
 [tool.ruff.lint]
+per-file-ignores = {"cocktailberry/*" = ["E402"] }
+
 extend-safe-fixes = [
   "UP", # pyupgrade
   "D107", # Missing docstring in __init__
@@ -75,4 +90,19 @@ ignore = [
 ]
 
 [tool.mypy]
-disable_error_code = ["annotation-unchecked", "import-untyped"]
+disable_error_code = ["annotation-unchecked", "import-untyped", "import-not-found"]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = [
+    "smartcard",
+    "smartcard.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers"
