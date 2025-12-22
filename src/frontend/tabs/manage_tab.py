@@ -19,7 +19,7 @@ TABLE_COLUMNS: list[dict[str, Any]] = [
 # Slot templates for custom cell rendering
 CARD_ID_SLOT = """
 <q-td :props="props">
-    <q-chip icon="credit_card" color="primary" text-color="white">
+    <q-chip icon="credit_card" color="white" outline>
         {{ props.row.nfc_id }}
     </q-chip>
 </q-td>
@@ -30,7 +30,7 @@ STATUS_SLOT = f"""
     <q-chip
         :icon="props.row.is_adult ? 'person' : 'child_care'"
         :color="props.row.is_adult ? 'green' : 'grey'"
-        text-color="white"
+        class="text-bold"
     >
         {{{{ props.row.is_adult ? '{t.adult}' : '{t.child}' }}}}
     </q-chip>
@@ -39,7 +39,7 @@ STATUS_SLOT = f"""
 
 BALANCE_SLOT = """
 <q-td :props="props">
-    <q-chip icon="euro" color="secondary" outline class="min-w-26">
+    <q-chip icon="euro" color="primary" class="min-w-26 text-bold">
         {{ props.row.balance.toFixed(2) }}
     </q-chip>
 </q-td>
