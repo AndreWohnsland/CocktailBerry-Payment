@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: 3.13
       - name: 🔍 Lint with MyPy
-        run: uv run mypy src
+        run: uv run --all-extras mypy src
   pytest:
     runs-on: ubuntu-latest
     steps:
@@ -38,4 +38,4 @@ jobs:
         with:
           python-version: 3.13
       - name: 🔍 Run PyTest
-        run: uv run pytest
+        run: uv run --all-extras pytest
