@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 
 from src.backend.constants import MIN_BALANCE
 from src.backend.models.user import User, UserCreate, UserUpdate
-from src.backend.service.user_service import UserService
+from src.backend.service.user_service import PaymentLogOptions, UserService
 
 
 class TestGetUser:
@@ -50,7 +50,7 @@ class TestCreateUser:
 
         log = next(log for log in user_service.get_payment_logs(user.nfc_id) if log.nfc_id == user.nfc_id)
         assert log is not None
-        assert log.description == "Created"
+        assert log.description == PaymentLogOptions.CREATED
         assert log.amount == 0.0
 
     def test_create_user_duplicate_nfc(self, user_service: UserService, sample_user: User) -> None:
@@ -110,7 +110,7 @@ class TestUpdateUser:
 
         log = next(log for log in user_service.get_payment_logs(user.nfc_id) if log.nfc_id == user.nfc_id)
         assert log is not None
-        assert log.description == "Updated Info"
+        assert log.description == PaymentLogOptions.UPDATED
         assert log.amount == new_balance
 
 
@@ -123,7 +123,7 @@ class TestDeleteUser:
 
         log = next(log for log in user_service.get_payment_logs(sample_user.nfc_id) if log.nfc_id == sample_user.nfc_id)
         assert log is not None
-        assert log.description == "Deleted"
+        assert log.description == PaymentLogOptions.DELETED
 
     def test_delete_user_not_found(self, user_service: UserService) -> None:
         """Test deleting non-existent user raises exception."""
@@ -145,7 +145,7 @@ class TestUpdateBalance:
 
         log = next(log for log in user_service.get_payment_logs(user.nfc_id) if log.nfc_id == user.nfc_id)
         assert log is not None
-        assert log.description == "Updated Balance"
+        assert log.description == PaymentLogOptions.TOP_UP
         assert log.amount == 25.0  # noqa: PLR2004
 
     def test_update_balance_subtract(self, user_service: UserService, sample_user: User) -> None:
@@ -246,7 +246,7 @@ class TestBookCocktail:
         logs = user_service.get_payment_logs(sample_user.nfc_id)
         first_log = next(log for log in logs if log.nfc_id == sample_user.nfc_id)
         assert first_log is not None
-        assert first_log.description == f"Cocktail: {name}"
+        assert first_log.description == name
         assert first_log.amount == -amount
         first_log.created_at
 

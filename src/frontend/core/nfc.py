@@ -19,7 +19,7 @@ try:
     from smartcard.pcsc.PCSCReader import PCSCReader
     from smartcard.System import readers
     from smartcard.util import toHexString
-except (ImportError, ModuleNotFoundError) as e:
+except (ImportError, ModuleNotFoundError):
     print("pyscard library is required for NFC functionality. Please install the 'nfc' extra.")
 
 from src.frontend.core.config import config as cfg
