@@ -19,6 +19,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY src ./src
 
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --extra gui --locked
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --extra gui --extra nfc --locked
 
 CMD ["uv", "run", "run_frontend.py"]
