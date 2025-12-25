@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -8,15 +9,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.backend.api.routes import api_router
 from src.backend.core.config import config as cfg
 from src.backend.core.log_config import log_config
-from src.backend.db.database import init_db
+from src.backend.db.database import backup_db_periodically, init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Startup
     init_db()
+    backups = asyncio.create_task(backup_db_periodically())
     yield
     # Shutdown
+    backups.cancel()
 
 
 app = FastAPI(
