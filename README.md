@@ -1,3 +1,9 @@
+# CocktailBerry-Payment
+
+Payment Service for [CocktailBerry](https://github.com/AndreWohnsland/CocktailBerry).
+This service enables payment options for CocktailBerry, allowing users to integrate payment and balance management over NFC.
+It is the central management point for service personal to initialize and manage user accounts, balances and transactions.
+
 <img src="https://raw.githubusercontent.com/AndreWohnsland/CocktailBerry/master/docs/pictures/CocktailBerry.svg" alt="CocktailBerry"/>
 
 <br/>
@@ -16,12 +22,6 @@
 CocktailBerry is a Python and Qt (or React for v2) based app for a cocktail machine on the Raspberry Pi.
 It enables you to build your own, fully customized machine, while still be able to use the identical software on each machine.
 Detailed information, installation steps and SetUp can be found at the [Official Documentation](https://docs.cocktailberry.org).
-
-# CocktailBerry-Payment
-
-Payment Service for [CocktailBerry](https://github.com/AndreWohnsland/CocktailBerry).
-This service enables payment options for CocktailBerry, allowing users to integrate payment and balance management over NFC.
-It is the central management point for service personal to initialize and manage user accounts, balances and transactions.
 
 ## Features
 
@@ -50,52 +50,8 @@ User will then pay the cocktails over NFC cards, while service personal can mana
 
 ## Setup
 
-If you have experienced CocktailBerry, you know that we try to simplify the setup as much as possible.
-We boiled the process down to a few commands, it will still be a little bit more complex than a regular CocktailBerry setup.
-While you can run the backend on the same machine as CocktailBerry, or the the Admin payment GUI, it is recommended to run them on separate devices for better performance and security.
-
-The recommended way for a "basic" hardware setup is:
-
-- A Server (can be a Raspberry Pi 4 or similar) running the payment API over docker
-- A desktop device connected with a USB NFC reader running the payment GUI, can be Windows
-- CocktailBerry machine having a USB NFC reader and connected to the payment API over the network
-
-If you want to really keep it minimalistic, you can also run both API and GUI on the same device, e.g. a Raspberry Pi 4.
-In this case you would need to ensure that this device is not down, otherwise users will not be able to order cocktails.
-More CocktailBerry machines or GUI instances can be added at any time, just point them to the same backend API.
-
-CocktailBerry machines should be set up according to the official documentation, just ensure that the payment option is enabled and the API URL is set correctly.
-For your other devices, follow the steps below, we need to distinguish between Windows and Linux based systems.
-MacOS might work as well, but is not officially supported.
-
-### Linux preparation
-
-Linux is the most easy way, since most of the things can be done over a script.
-Just run:
-
-```bash
-wget -O https://github.com/AndreWohnsland/CocktailBerry-Payment/blob/main/scripts/unix_installer.sh
-```
-
-Then follow the [services installation](#service-installation) steps below.
-
-### Windows preparation
-
-Windows can be quite restrictive when it comes to executing scripts and similar tasks.
-Make sure the user is able to execute PowerShell scripts and install applications.
-If you want to use docker on windows, make sure you [install it](https://docs.docker.com/desktop/setup/install/windows-install/) and set it to auto start with windows.
-
-Then just open a PowerShell terminal as Administrator and run the following command to download and execute the installation script:
-
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://github.com/AndreWohnsland/CocktailBerry-Payment/blob/main/scripts/windows_installer.ps1 | iex"
-```
-
-<!-- TODO: LINK -->
-<!-- Alternatively, there is also a pre-built executable available for the GUI, which you can download from the release page. -->
-<!-- You might not be able to set all options tough when using this directly, so even when using this, going over this preparation and service installation steps is recommended. -->
-
-Then follow the [services installation](#service-installation) steps below.
+See a detailed step-by-step installation guide in the [Official Documentation](https://docs.cocktailberry.org/payment/#setup).
+There you will find setup steps for windows and unix systems.
 
 ### Service installation
 
@@ -145,6 +101,4 @@ in another terminal.
 
 ### Open Tasks
 
-- [ ] DB Backups
-- [ ] Option to Overwrite (put) nfcs
-- [ ] Transaction Logs
+Here you will find planned features and tasks for future releases.
