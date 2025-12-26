@@ -24,30 +24,40 @@ class CreateTab:
                 on_clear=self._on_clear,
                 on_scan_complete=self._on_scan_complete,
             )
+            self.creation_container = ui.column().classes("w-full")
+            with self.creation_container:
+                with ui.card().classes(f"{Styles.CARD} w-full p-4 pb-6 flex flex-col items-center gap-3"):
+                    self.checkbox_adult = (
+                        ui.checkbox(t.create_adult_description, value=True)
+                        .classes("self-center mb-2 text-lg")
+                        .props("size=xl")
+                    )
+                    self.amount_selector = AmountSelector(show_sign=False, preset_amounts=[0, 5, 10, 20, 50, 100])
+                    self.save_button = ui.button(t.create_nfc, icon="save", color="secondary").classes(
+                        "py-3 mt-8 w-full max-w-md text-xl font-bold"
+                    )
 
-            self.form_card = ui.card().classes(f"{Styles.CARD} w-full mb-4 p-4 pb-6 flex flex-col items-center gap-3")
-            self.form_card.visible = False
-            with self.form_card:
-                self.checkbox_adult = (
-                    ui.checkbox(t.create_adult_description, value=True)
-                    .classes("self-center mb-2 text-lg")
-                    .props("size=xl")
-                )
-                self.amount_selector = AmountSelector(show_sign=False, preset_amounts=[0, 5, 10, 20, 50, 100])
+                with ui.card().classes(f"{Styles.CARD} w-full p-2 flex flex-col items-center gap-3"):
+                    self.checkbox_overwrite = (
+                        ui.switch(t.create_overwrite_description, value=False, on_change=self.choose_create_button_text)
+                        .classes("self-center text-lg")
+                        .props("size=xl color=negative")
+                    ).on_value_change(self.choose_create_button_text)
 
-                self.save_button = ui.button(t.create_nfc, icon="save", color="secondary").classes(
-                    "py-3 mt-8 w-full max-w-md text-xl font-bold"
-                )
-
-        # Attach handlers
+        self.creation_container.visible = False
         self.save_button.on_click(self.save_user)
 
-    # --- UI handlers -------------------------------------------------
+    async def choose_create_button_text(self) -> None:
+        """Set the text to create/overwrite."""
+        if self.checkbox_overwrite.value:
+            self.save_button.set_text(t.overwrite_nfc)
+        else:
+            self.save_button.set_text(t.create_nfc)
 
     async def _perform_scan(self) -> str | None:
         """Perform the actual NFC scan."""
         self.save_button.disable()
-        self.form_card.visible = False
+        self.creation_container.visible = False
         return await self.service.nfc.one_shot()
 
     def _on_scan_complete(self, nfc_id: str | None) -> None:
@@ -58,12 +68,12 @@ class CreateTab:
 
         self.checkbox_adult.value = True
         self.amount_selector.reset(cfg.default_balance)
-        self.form_card.visible = True
+        self.creation_container.visible = True
         self.save_button.enable()
 
     def _on_clear(self) -> None:
         """Handle clear button press."""
-        self.form_card.visible = False
+        self.creation_container.visible = False
 
     async def save_user(self) -> None:
         """Send to backend (mock) and add to store."""
@@ -75,7 +85,8 @@ class CreateTab:
         self.save_button.disable()
         self.nfc_scanner.set_status(t.create_nfc_creating)
 
-        result = await self.service.create_nfc(
+        service_function = self.service.create_nfc if not self.checkbox_overwrite.value else self.service.update_nfc
+        result = await service_function(
             nfc_id=self.nfc_scanner.nfc_id,
             is_adult=self.checkbox_adult.value,
             balance=self.amount_selector.value,
@@ -93,7 +104,8 @@ class CreateTab:
     def reset_ui(self) -> None:
         """Reset the Create tab UI state."""
         self.nfc_scanner.reset()
-        self.form_card.visible = False
+        self.creation_container.visible = False
+        self.checkbox_overwrite.value = False
 
 
 def build_create_tab(tab: Tab, service: NFCService) -> CreateTab:
