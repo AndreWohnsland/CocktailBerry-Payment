@@ -42,11 +42,12 @@ class Translations:
     create_nfc_creating: str
     create_nfc_saved: str
     create_nfc: str
+    create_overwrite_description: str
     created_at: str
     delete: str
     header_create: str
-    header_top_up: str
     header_history: str
+    header_top_up: str
     manage_card_deleted: str
     manage_delete_confirm: str
     mange_filter_hint: str
@@ -64,6 +65,7 @@ class Translations:
     nfc_scanning_progress: str
     nfc_simulate_hint: str
     nfc_timeout: str
+    overwrite_nfc: str
     request_error: str
     tab_config: str
     tab_create: str
