@@ -1,13 +1,34 @@
 Write-Output "~~ Starting CocktailBerry-Payment Windows installer... ~~"
-Write-Output "> Installing 'uv' via Astral.sh..."
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-# winget install -e --id astral-sh.uv
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+  Write-Output "> Installing 'uv' via Astral.sh..."
+  try {
+    powershell -ExecutionPolicy Bypass -Command "irm 'https://astral.sh/uv/install.ps1' | iex"
+    $machinePath = [System.Environment]::GetEnvironmentVariable('Path','Machine')
+    $userPath = [System.Environment]::GetEnvironmentVariable('Path','User')
+    $env:Path = "$machinePath;$userPath"
+    Write-Output "'uv' installation complete."
+  } catch {
+    Write-Warning "Failed to install 'uv': $_"
+  }
+} else {
+  Write-Output "'uv' is already installed."
+}
 
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-Write-Output "'uv' installation complete."
-
-Write-Output "> Installing Git via winget..."
-winget install --id Git.Git -e --source winget
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+  Write-Output "> Installing Git via winget..."
+  if (Get-Command winget -ErrorAction SilentlyContinue) {
+    try {
+      winget install --id Git.Git -e --source winget
+      Write-Output "Git installation complete."
+    } catch {
+      Write-Warning "winget failed to install Git: $_"
+    }
+  } else {
+    Write-Warning "winget not available. Please install Git manually from https://git-scm.com/downloads"
+  }
+} else {
+  Write-Output "Git is already installed."
+}
 
 Write-Output "> Cloning CocktailBerry-Payment repository..."
 Set-Location $env:USERPROFILE

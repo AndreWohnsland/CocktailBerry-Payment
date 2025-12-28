@@ -123,6 +123,16 @@ class NFCService:
         return user
 
     @run_catching
+    async def update_nfc(self, nfc_id: str, is_adult: bool, balance: float) -> Nfc:
+        """Update user via backend and notify listeners. Returns updated user id."""
+        payload = {"is_adult": is_adult, "balance": balance}
+        resp = await self._client.put(f"/users/{nfc_id}", json=payload)
+        resp.raise_for_status()
+        user = Nfc.model_validate(resp.json())
+        self._notify()
+        return user
+
+    @run_catching
     async def delete_nfc(self, nfc_id: str) -> None:
         """Delete user via backend and notify listeners."""
         resp = await self._client.delete(f"/users/{nfc_id}")
