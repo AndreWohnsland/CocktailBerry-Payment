@@ -1,3 +1,4 @@
+import logging
 from enum import StrEnum
 from typing import Annotated
 
@@ -5,8 +6,11 @@ from fastapi import Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from src.backend.constants import MIN_BALANCE
+from src.backend.core.config import config
 from src.backend.db.database import get_db
 from src.backend.models.user import PaymentLog, User, UserCreate, UserUpdate
+
+_logger = logging.getLogger(__name__)
 
 
 class PaymentLogOptions(StrEnum):
@@ -46,6 +50,7 @@ class UserService:
         )
         self.db.commit()
         self.db.refresh(db_user)
+        _logger.info(f"Created new user with NFC ID {db_user.nfc_id}")
         return db_user
 
     def update_user(self, nfc_id: str, user_update: UserUpdate) -> User:
@@ -64,6 +69,7 @@ class UserService:
         )
         self.db.commit()
         self.db.refresh(db_user)
+        _logger.info(f"Updated user with NFC ID {db_user.nfc_id}")
         return db_user
 
     def delete_user(self, nfc_id: str) -> None:
@@ -79,6 +85,7 @@ class UserService:
             commit=False,
         )
         self.db.commit()
+        _logger.info(f"Deleted user with NFC ID {db_user.nfc_id}")
 
     def update_balance(self, nfc_id: str, amount: float) -> User:
         db_user = self.get_user_by_nfc(nfc_id)
@@ -107,12 +114,20 @@ class UserService:
         )
         self.db.commit()
         self.db.refresh(db_user)
+        _logger.info(f"Updated balance for NFC ID {db_user.nfc_id}: {amount:.2f}, new balance: {new_balance:.2f}")
         return db_user
 
     def book_cocktail(self, nfc_id: str, amount: float, is_alcoholic: bool, name: str) -> User:
         db_user = self.get_user_by_nfc(nfc_id)
         if not db_user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # Master key users: log booking but don't deduct balance
+        if nfc_id in config.master_keys:
+            _logger.info(
+                f"Master key booking: '{name}' for NFC ID {nfc_id} (price: {amount:.2f}, alcoholic: {is_alcoholic})"
+            )
+            return db_user
 
         if is_alcoholic and not db_user.is_adult:
             raise HTTPException(
@@ -137,6 +152,9 @@ class UserService:
         )
         self.db.commit()
         self.db.refresh(db_user)
+        _logger.info(
+            f"Booked cocktail '{name}' for NFC ID {db_user.nfc_id}: -{amount:.2f}, new balance: {db_user.balance:.2f}"
+        )
         return db_user
 
     def log_payment_event(
