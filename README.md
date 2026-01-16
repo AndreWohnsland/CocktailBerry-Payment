@@ -67,6 +67,16 @@ to start the interactive setup.
 You will be prompted for all necessary information and the script will set up everything for you.
 You might need to restart your device after the installation is done, depending on the options you selected and your OS.
 
+## Impressions of Admin GUI
+
+<img src="docs/img/top_up.png" alt="Top Up" width="600"/>
+
+<img src="docs/img/create.png" alt="Create" width="600"/>
+
+<img src="docs/img/manage.png" alt="Manage Users" width="600"/>
+
+<img src="docs/img/history.png" alt="User History" width="600"/>
+
 ## Development
 
 This project uses [uv](https://docs.astral.sh/uv/) to manage all its dependencies.
