@@ -69,13 +69,20 @@ class ManageTab:
         self.filter_value: str = ""
 
         with ui.tab_panel(tab):
-            with ui.row().classes("items-center w-full mb-4"):
+            with ui.row().classes("items-center w-full mb-2"):
                 self.filter_input = ui.input(t.mange_filter_hint, on_change=self._on_filter_change).classes("flex-grow")
                 self.scan_button = (
                     ui.button(t.nfc_scan, icon="nfc", color="primary").classes("py-2").on_click(self._scan_card)
                 )
                 self.clear_button = (
                     ui.button(t.clear, icon="clear", color="neutral").classes("py-2").on_click(self._clear_filter)
+                )
+
+            with ui.row().classes("items-center w-full mb-2"):
+                self.refresh_button = (
+                    ui.button(t.refresh, icon="refresh", color="primary")
+                    .classes("py-2")
+                    .on_click(self._on_refresh_click)
                 )
 
             self.table = (
@@ -119,6 +126,12 @@ class ManageTab:
         """Clear the filter input."""
         self.filter_input.value = ""
         self.filter_value = ""
+
+    async def _on_refresh_click(self) -> None:
+        """Handle refresh button click."""
+        self.refresh_button.disable()
+        await self.refresh()
+        self.refresh_button.enable()
 
     async def _scan_card(self) -> None:
         """Scan an NFC card and use it as the filter."""
