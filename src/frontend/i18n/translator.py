@@ -66,6 +66,7 @@ class Translations:
     nfc_simulate_hint: str
     nfc_timeout: str
     overwrite_nfc: str
+    refresh: str
     request_error: str
     tab_config: str
     tab_create: str
