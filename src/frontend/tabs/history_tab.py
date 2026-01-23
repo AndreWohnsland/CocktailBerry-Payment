@@ -23,16 +23,16 @@ TABLE_COLUMNS: list[dict[str, Any]] = [
 
 AMOUNT_SLOT = """
 <q-td :props="props">
-    <q-chip :color="props.value < 0 ? 'red' : 'green'" class="text-bold">
-        {{ props.value }}
+    <q-chip :icon="props.value < 0 ? 'remove' : 'add'" :color="props.value < 0 ? 'red' : 'green'" class="min-w-22 text-bold">
+        {{ Math.abs(props.value).toFixed(2) }}
     </q-chip>
 </q-td>
-"""
+"""  # noqa: E501
 
 BALANCE_SLOT = """
 <q-td :props="props">
     <q-chip icon="euro" color="primary" class="min-w-22 text-bold">
-        {{ props.row.current_balance.toFixed(2) }}
+        {{ props.value.toFixed(2) }}
     </q-chip>
 </q-td>
 """
