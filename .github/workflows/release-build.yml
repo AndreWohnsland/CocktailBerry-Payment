@@ -1,4 +1,4 @@
-name: Update version, build & publish CocktailBerry images
+name: Build & publish CocktailBerry images
 run-name: "Version: ${{ github.event.release.tag_name }}, build and publish images"
 on:
   release:
@@ -27,17 +27,18 @@ jobs:
 
       - name: 🔑 Restore PFX certificate
         shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets[matrix.certificate] }}
+          PFX_PASSWORD: ${{ secrets[matrix.password] }}
         run: |
-          $pfxBase64 = "${{ secrets[matrix.certificate]}}"
-          $pfxPassword = "${{ secrets[matrix.password]}}"
-
-          $bytes = [Convert]::FromBase64String($pfxBase64)
-          $pfxPath = "$env:TEMP\codesign.pfx"
+          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
+          $pfxPath = Join-Path $env:TEMP "codesign.pfx"
           [IO.File]::WriteAllBytes($pfxPath, $bytes)
 
-          certutil -f -p $pfxPassword -importpfx $pfxPath
+          $securePassword = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+          Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
 
-      - name: 🐍 Install the latest version of uv
+      - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
 
       - name: 📦 Install dependencies
@@ -49,25 +50,37 @@ jobs:
       - name: 🔏 Sign EXE
         shell: pwsh
         run: |
-          signtool sign `
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits" `
+            -Recurse -Filter signtool.exe | `
+            Where-Object { $_.FullName -like "*x64*" } | `
+            Select-Object -First 1 -ExpandProperty FullName
+          & $signtool sign `
             /fd SHA256 `
             /tr http://timestamp.digicert.com `
             /td SHA256 `
             /a `
-            path\to\your.exe
+            "dist/${{ env.PYI_NAME }}.exe"
+
+      - name: 🧹 Cleanup certificate
+        if: always()
+        shell: pwsh
+        run: |
+          $pfxPath = Join-Path $env:TEMP "codesign.pfx"
+          if (Test-Path $pfxPath) { Remove-Item $pfxPath -Force }
+          Get-ChildItem Cert:\CurrentUser\My | Remove-Item -Force -ErrorAction SilentlyContinue
 
       - name: 📤 Upload artifact
         uses: actions/upload-artifact@v6
         with:
           name: ${{ env.PYI_NAME }}
-          path: dist/${{ env.PYI_NAME }}
+          path: dist/${{ env.PYI_NAME }}.exe
 
       - name: 🚀 Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: dist/${{ env.PYI_NAME }}
-          asset_name: ${{ env.PYI_NAME }}
+          file: dist/${{ env.PYI_NAME }}.exe
+          asset_name: ${{ env.PYI_NAME }}.exe
           tag: ${{ github.event.release.tag_name }}
 
   build-and-push-docker-image:
