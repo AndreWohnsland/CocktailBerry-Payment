@@ -21,6 +21,16 @@ real concept in the code or a seam worth protecting.
 
 ## Seams
 
+### GUI ↔ backend client seam
+
+`PaymentApi` (`frontend/core/payment_api.py`) is the GUI's only door to the
+backend: typed methods that each return a `Result` (`Success | Err`), with
+`run_catching` turning any error (incl. an httpx `{"detail": ...}` body) into a
+localized `Err`. Its `httpx` client is **injected**, so it's tested through an
+`httpx.MockTransport` with no server — the interface is the test surface.
+`NFCService` is a thin facade over it that also holds the NFC scanner and the
+UI change-listeners (fired after a successful mutation); tabs talk to the facade.
+
 ### Service ↔ HTTP error seam
 
 `UserService` is the domain module and speaks only the domain language: it
