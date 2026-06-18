@@ -1,6 +1,14 @@
 """Pytest configuration and shared fixtures."""
 
+import os
+
+# Pin the error-message language so tests are hermetic regardless of a local
+# .env (which may set LANGUAGE=de). Must run before any src.backend import,
+# because the translations singleton binds to the configured language at import.
+os.environ["LANGUAGE"] = "en"
+
 from collections.abc import Generator
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -36,7 +44,7 @@ def user_service(db_session: Session) -> UserService:
 @pytest.fixture
 def sample_user(db_session: Session) -> User:
     """Create a sample user for testing."""
-    user = User(nfc_id="TEST123", balance=50.0, is_adult=True)
+    user = User(nfc_id="TEST123", balance=Decimal("50.00"), is_adult=True)
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
@@ -46,7 +54,7 @@ def sample_user(db_session: Session) -> User:
 @pytest.fixture
 def sample_minor(db_session: Session) -> User:
     """Create a sample minor user for testing."""
-    user = User(nfc_id="MINOR456", balance=30.0, is_adult=False)
+    user = User(nfc_id="MINOR456", balance=Decimal("30.00"), is_adult=False)
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)

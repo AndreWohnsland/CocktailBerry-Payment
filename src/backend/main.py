@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from decimal import Decimal
 
 import uvicorn
 from fastapi import FastAPI
@@ -8,7 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.backend.api.routes import api_router
 from src.backend.core.config import config as cfg
-from src.backend.db.database import backup_db_periodically, get_db, init_db
+from src.backend.core.exception_handlers import register_exception_handlers
+from src.backend.db.database import backup_db_periodically, get_db, run_db_migrations
 from src.backend.models.user import UserCreate
 from src.backend.service.user_service import get_user_service
 from src.shared import LOG_CONFIG_PATH
@@ -21,13 +23,13 @@ def initialize_master_key_users() -> None:
     for master_key in cfg.master_keys:
         existing_user = user_service.get_user_by_nfc(master_key)
         if not existing_user:
-            user_service.create_user(UserCreate(nfc_id=master_key, is_adult=True, balance=100.0))
+            user_service.create_user(UserCreate(nfc_id=master_key, is_adult=True, balance=Decimal("100")))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Startup
-    init_db()
+    run_db_migrations()
     initialize_master_key_users()
     backups = asyncio.create_task(backup_db_periodically())
     yield
@@ -51,6 +53,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+register_exception_handlers(app)
 
 
 @app.get("/")

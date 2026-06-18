@@ -137,7 +137,7 @@ class ManageTab:
         """Scan an NFC card and use it as the filter."""
         self.scan_button.disable()
         original_value = self.filter_input.value
-        self.filter_input.value = "Scanning..."
+        self.filter_input.value = t.nfc_scanning_progress
 
         nfc_id = await self.service.nfc.one_shot()
 

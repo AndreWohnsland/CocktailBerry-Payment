@@ -1,12 +1,19 @@
 import logging
+from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from sqlmodel import Session, select
 
-from src.backend.constants import MIN_BALANCE
 from src.backend.core.config import config
+from src.backend.core.errors import (
+    BalanceBelowMinimum,
+    DuplicateNfc,
+    InsufficientBalance,
+    UnderageBooking,
+    UserNotFound,
+)
 from src.backend.db.database import get_db
 from src.backend.models.user import PaymentLog, User, UserCreate, UserUpdate
 
@@ -35,10 +42,7 @@ class UserService:
     def create_user(self, user: UserCreate) -> User:
         existing_user = self.get_user_by_nfc(user.nfc_id)
         if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"User with NFC ID {user.nfc_id} already exists",
-            )
+            raise DuplicateNfc(user.nfc_id)
         db_user = User.model_validate(user)
         self.db.add(db_user)
         self.log_payment_event(
@@ -56,13 +60,13 @@ class UserService:
     def update_user(self, nfc_id: str, user_update: UserUpdate) -> User:
         db_user = self.get_user_by_nfc(nfc_id)
         if not db_user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise UserNotFound(nfc_id)
 
         db_user.sqlmodel_update(user_update.model_dump(exclude_unset=True))
         self.db.add(db_user)
         self.log_payment_event(
             nfc_id=db_user.nfc_id,
-            amount=user_update.balance or 0.0,
+            amount=user_update.balance or Decimal("0"),
             current_balance=db_user.balance,
             description=PaymentLogOptions.UPDATED,
             commit=False,
@@ -75,36 +79,30 @@ class UserService:
     def delete_user(self, nfc_id: str) -> None:
         db_user = self.get_user_by_nfc(nfc_id)
         if not db_user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise UserNotFound(nfc_id)
         self.db.delete(db_user)
         self.log_payment_event(
             nfc_id=db_user.nfc_id,
-            amount=0.0,
-            current_balance=0.0,
+            amount=Decimal("0"),
+            current_balance=Decimal("0"),
             description=PaymentLogOptions.DELETED,
             commit=False,
         )
         self.db.commit()
         _logger.info(f"Deleted user with NFC ID {db_user.nfc_id}")
 
-    def update_balance(self, nfc_id: str, amount: float) -> User:
+    def update_balance(self, nfc_id: str, amount: Decimal) -> User:
         db_user = self.get_user_by_nfc(nfc_id)
         if not db_user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise UserNotFound(nfc_id)
 
         new_balance = db_user.balance + amount
-        # Prevent extreme negative balances for data integrity
-        if new_balance < MIN_BALANCE:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Balance cannot go below €{MIN_BALANCE:.2f}. "
-                    f"Current: {db_user.balance:.2f}, Requested: {amount:.2f}"
-                ),
-            )
+        # A balance may not go negative (same floor book_cocktail enforces).
+        if new_balance < 0:
+            raise BalanceBelowMinimum(current=db_user.balance, requested=amount)
 
         db_user.balance = new_balance
-        self.db.add(db_user)
+        self.db.add(instance=db_user)
         self.log_payment_event(
             nfc_id=db_user.nfc_id,
             amount=amount,
@@ -117,10 +115,10 @@ class UserService:
         _logger.info(f"Updated balance for NFC ID {db_user.nfc_id}: {amount:.2f}, new balance: {new_balance:.2f}")
         return db_user
 
-    def book_cocktail(self, nfc_id: str, amount: float, is_alcoholic: bool, name: str) -> User:
+    def book_cocktail(self, nfc_id: str, amount: Decimal, is_alcoholic: bool, name: str) -> User:
         db_user = self.get_user_by_nfc(nfc_id)
         if not db_user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise UserNotFound(nfc_id)
 
         # Master key users: log booking but don't deduct balance
         if nfc_id in config.master_keys:
@@ -130,16 +128,10 @@ class UserService:
             return db_user
 
         if is_alcoholic and not db_user.is_adult:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is underage and cannot purchase alcoholic cocktails",
-            )
+            raise UnderageBooking(nfc_id)
 
         if db_user.balance < amount:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail=f"Insufficient balance. Current: {db_user.balance:.2f}, Required: {amount:.2f}",
-            )
+            raise InsufficientBalance(current=db_user.balance, required=amount)
 
         db_user.balance -= amount
         self.db.add(db_user)
@@ -160,8 +152,8 @@ class UserService:
     def log_payment_event(
         self,
         nfc_id: str,
-        amount: float,
-        current_balance: float,
+        amount: Decimal,
+        current_balance: Decimal,
         description: str,
         commit: bool = True,
     ) -> None:
