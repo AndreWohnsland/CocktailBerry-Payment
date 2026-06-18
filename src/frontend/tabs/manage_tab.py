@@ -2,9 +2,10 @@ import asyncio
 from collections.abc import Coroutine
 from typing import Any
 
-from nicegui import events, ui
+from nicegui import context, events, ui
 from nicegui.elements.tabs import Tab
 
+from src.frontend.components import NfcSearchBar
 from src.frontend.i18n.translator import translations as t
 from src.frontend.services import NFCService, is_err, is_success
 
@@ -66,17 +67,12 @@ class ManageTab:
 
     def __init__(self, service: NFCService, tab: Tab) -> None:
         self.service = service
-        self.filter_value: str = ""
 
         with ui.tab_panel(tab):
-            with ui.row().classes("items-center w-full mb-2"):
-                self.filter_input = ui.input(t.mange_filter_hint, on_change=self._on_filter_change).classes("flex-grow")
-                self.scan_button = (
-                    ui.button(t.nfc_scan, icon="nfc", color="primary").classes("py-2").on_click(self._scan_card)
-                )
-                self.clear_button = (
-                    ui.button(t.clear, icon="clear", color="neutral").classes("py-2").on_click(self._clear_filter)
-                )
+            # Captured here (a valid UI context) so background tasks can re-enter the
+            # slot — asyncio tasks get an empty slot stack, which breaks ui.* calls.
+            self._slot = context.slot
+            self.search = NfcSearchBar(hint=t.mange_filter_hint, on_scan=self.service.nfc.one_shot)
 
             with ui.row().classes("items-center w-full mb-2"):
                 self.refresh_button = (
@@ -103,8 +99,8 @@ class ManageTab:
 
             self.table.on("delete", self._on_delete)
 
-        # Bind filter input to table's built-in filter
-        self.filter_input.bind_value_to(self.table, "filter")
+        # Client-side filter: bind the search box (incl. scanned ids) to the table's built-in filter.
+        self.search.input.bind_value_to(self.table, "filter")
 
         # Register for changes and do initial render (schedule async refresh)
         self._background_tasks: set[asyncio.Task] = set()
@@ -113,46 +109,21 @@ class ManageTab:
         ui.timer(0, lambda: self._add_task(self.refresh(notify=False)), once=True)
 
     def _add_task(self, coro: Coroutine) -> None:
-        """Add a background task and keep a reference to prevent GC."""
-        task = asyncio.create_task(coro)
+        """Run a background task inside the UI slot, holding a reference to prevent GC."""
+
+        async def _runner() -> None:
+            with self._slot:
+                await coro
+
+        task = asyncio.create_task(_runner())
         self._background_tasks.add(task)
         task.add_done_callback(self._background_tasks.discard)
-
-    def _on_filter_change(self) -> None:
-        """Update filter value state."""
-        self.filter_value = (self.filter_input.value or "").strip()
-
-    def _clear_filter(self) -> None:
-        """Clear the filter input."""
-        self.filter_input.value = ""
-        self.filter_value = ""
 
     async def _on_refresh_click(self) -> None:
         """Handle refresh button click."""
         self.refresh_button.disable()
         await self.refresh()
         self.refresh_button.enable()
-
-    async def _scan_card(self) -> None:
-        """Scan an NFC card and use it as the filter."""
-        self.scan_button.disable()
-        original_value = self.filter_input.value
-        self.filter_input.value = t.nfc_scanning_progress
-
-        nfc_id = await self.service.nfc.one_shot()
-
-        self.scan_button.enable()
-        if not nfc_id:
-            ui.notify(
-                t.nfc_timeout,
-                type="warning",
-                position="top-right",
-            )
-            self.filter_input.value = original_value or ""
-            return
-
-        self.filter_input.value = nfc_id
-        self.filter_value = nfc_id
 
     async def _on_delete(self, e: events.GenericEventArguments) -> None:
         """Handle delete button click from table row."""
