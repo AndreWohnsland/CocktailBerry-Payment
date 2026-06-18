@@ -12,6 +12,7 @@ class Config(BaseSettings):
     api_key: str = DEFAULT_API_KEY
     api_port: int = DEFAULT_BACKEND_PORT
     database_path: str = str(DEFAULT_DATABASE_PATH)
+    language: str = "en"
     master_keys: list[str] = []
 
     def model_post_init(self, _context: Any, /) -> None:

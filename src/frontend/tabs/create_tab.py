@@ -79,7 +79,7 @@ class CreateTab:
         """Send to backend (mock) and add to store."""
         if not self.nfc_scanner.nfc_id:
             # should not happen due to UI state, but just in case
-            ui.notify("No card scanned yet!", type="negative", position="top-right")
+            ui.notify(t.nfc_no_card_scanned, type="negative", position="top-right")
             return
 
         self.save_button.disable()

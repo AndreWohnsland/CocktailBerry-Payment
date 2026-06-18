@@ -40,9 +40,12 @@ dev = [
 # don't check import order in the migration script
 line-length = 120
 target-version = "py313"
+# Alembic-generated files (env.py, mako template, versions/) follow their own
+# conventions, not the project's docstring/annotation rules.
+extend-exclude = ["src/backend/db/migrations"]
 
 [tool.ruff.lint]
-per-file-ignores = {"cocktailberry/*" = ["E402"] }
+per-file-ignores = {"cocktailberry/*" = ["E402"], "tests/conftest.py" = ["E402"] }
 
 extend-safe-fixes = [
   "UP", # pyupgrade
@@ -92,6 +95,7 @@ ignore = [
 [tool.mypy]
 disable_error_code = ["annotation-unchecked", "import-untyped", "import-not-found"]
 explicit_package_bases = true
+exclude = ["src/backend/db/migrations"]
 
 [[tool.mypy.overrides]]
 module = [

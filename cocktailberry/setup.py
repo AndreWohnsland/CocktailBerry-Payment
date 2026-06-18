@@ -33,6 +33,7 @@ CONFIG_VARIABLES: dict[str, list[ConfigItem]] = {
     "backend": [
         ConfigItem("API_KEY", "API key for backend service", default="CocktailBerry-Secret-Change-Me"),
         ConfigItem("API_PORT", "Port for backend service", default="9876"),
+        ConfigItem("LANGUAGE", "Language for error messages (e.g., en, de)", default="en"),
     ],
 }
 
