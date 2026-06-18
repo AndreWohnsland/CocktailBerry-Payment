@@ -10,5 +10,5 @@
   "python.testing.pytestArgs": ["tests"],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "cSpell.words": ["topup"]
+  "cSpell.words": ["sqlmodel", "sqltypes", "topup"]
 }

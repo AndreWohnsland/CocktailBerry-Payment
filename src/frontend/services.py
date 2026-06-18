@@ -153,6 +153,10 @@ class NFCService:
 
     # --- Listener management ----------------------------------------
 
+    async def aclose(self) -> None:
+        """Close the underlying HTTP client. Should be called on app shutdown."""
+        await self._client.aclose()
+
     def add_listener(self, listener: Callable[[], None]) -> None:
         """Register a callback that is called whenever users change."""
         self._listeners.append(listener)

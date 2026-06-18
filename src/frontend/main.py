@@ -22,6 +22,7 @@ def _ui() -> None:
     apply_theme()
 
     service = NFCService()
+    app.on_shutdown(service.aclose)
     app.add_static_files("/static", static_file_path)
     ui.button.default_classes("rounded-lg")
 
@@ -56,5 +57,5 @@ def start_nicegui() -> None:
         fullscreen=cfg.full_screen,
         window_size=(900, 1200) if cfg.native_mode and not cfg.full_screen else None,
         favicon=static_file_path / "favicon.ico",
-        language=cfg.language,  # type: ignore[arg-type]
+        language=cfg.language,  # type: ignore[arg-type]  # ty:ignore[invalid-argument-type]
     )

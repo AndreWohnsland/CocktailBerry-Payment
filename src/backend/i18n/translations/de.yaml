@@ -1,0 +1,5 @@
+err_balance_below_minimum: 'Guthaben darf nicht unter €0.00 fallen. Aktuell: {current}, Angefragt: {requested}'
+err_duplicate_nfc: 'Benutzer mit NFC-ID {nfc_id} existiert bereits'
+err_insufficient_balance: 'Nicht genügend Guthaben. Aktuell: {current}, Benötigt: {required}'
+err_underage_booking: 'Benutzer ist minderjährig und darf keine alkoholischen Cocktails kaufen'
+err_user_not_found: 'Benutzer nicht gefunden'

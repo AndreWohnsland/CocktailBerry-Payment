@@ -112,7 +112,7 @@ class TopUpTab:
         """Update the user's balance."""
         if not self.nfc_scanner.nfc_id or not self.current_user:
             # should not happen due to UI state, but just in case
-            ui.notify("No user scanned!", type="negative", position="top-right")
+            ui.notify(t.nfc_no_card_scanned, type="negative", position="top-right")
             return
 
         amount = self.amount_selector.value
