@@ -1,9 +1,11 @@
+import asyncio
+from collections.abc import Coroutine
 from typing import Any
 
-from nicegui import ui
+from nicegui import context, ui
 from nicegui.elements.tabs import Tab
 
-from src.frontend.components.nfc_scanner import NfcScannerSection
+from src.frontend.components import NfcSearchBar
 from src.frontend.i18n.translator import translations as t
 from src.frontend.services import NFCService, is_err, is_success
 from src.frontend.theme import Styles
@@ -38,24 +40,29 @@ BALANCE_SLOT = """
 """
 
 PAGE_SIZE = 10
+# NFC UIDs are at least 8 hex chars (4-byte cards); don't fetch on shorter, partial input.
+MIN_NFC_LEN = 8
+SEARCH_DEBOUNCE_MS = 400
 
 
 class HistoryTab:
-    """History tab: shows list of users with delete buttons using a paginated table."""
+    """History tab: search a card's transaction history by NFC ID (type or scan)."""
 
     def __init__(self, service: NFCService, tab: Tab) -> None:
         self.service = service
-        self.tab = tab
-        self._scan_hint = t.nfc_simulate_hint if self.service.mock_nfc_enabled else t.nfc_scan_hint
+        self._background_tasks: set[asyncio.Task] = set()
 
         with ui.tab_panel(tab):
+            # Captured here (a valid UI context) so background tasks can re-enter the
+            # slot — asyncio tasks get an empty slot stack, which breaks ui.* calls.
+            self._slot = context.slot
             ui.label(t.header_history).classes(f"text-xl my-2 {Styles.SUBHEADER}")
 
-            self.nfc_scanner = NfcScannerSection(
-                scan_hint=self._scan_hint,
-                on_scan=self._perform_scan,
-                on_clear=self._clear_scan,
-                on_scan_complete=self._on_scan_complete,
+            self.search = NfcSearchBar(
+                hint=t.mange_filter_hint,
+                on_scan=self.service.nfc.one_shot,
+                on_change=self._on_search,
+                debounce_ms=SEARCH_DEBOUNCE_MS,
             )
 
             self.table = (
@@ -68,33 +75,42 @@ class HistoryTab:
                 .classes("w-full mb-4")
                 .props("flat bordered")
             )
-
             self.table.add_slot("body-cell-amount", AMOUNT_SLOT)
             self.table.add_slot("body-cell-current_balance", BALANCE_SLOT)
 
-    async def _perform_scan(self) -> str | None:
-        """Perform the actual NFC scan."""
-        return await self.service.nfc.one_shot()
+    def _add_task(self, coro: Coroutine) -> None:
+        """Run a background task inside the UI slot, holding a reference so it isn't GC'd."""
 
-    async def _on_scan_complete(self, nfc_id: str | None) -> None:
-        """Handle scan completion."""
-        if not nfc_id:
-            ui.notify(t.nfc_timeout, type="warning", position="top-right")
+        async def _runner() -> None:
+            with self._slot:
+                await coro
+
+        task = asyncio.create_task(_runner())
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
+    def _on_search(self, value: str) -> None:
+        """Schedule the async history fetch (on_change is synchronous)."""
+        self._add_task(self._load_history(value))
+
+    async def _load_history(self, value: str) -> None:
+        """Fetch and show history for a full-length NFC ID; shorter input clears the table."""
+        nfc_id = value.strip()
+        if len(nfc_id) < MIN_NFC_LEN:
+            self.table.rows = []
             return
 
         result = await self.service.get_nfc_history(nfc_id)
 
-        if is_err(result):
-            ui.notify(str(result.error), type="negative", position="top-right")
-            self.table.rows = []
+        # Discard a stale response if the input changed while the fetch was in flight.
+        if nfc_id != self.search.value:
             return
 
         if is_success(result):
             self.table.rows = result.data
-
-    def _clear_scan(self) -> None:
-        """Handle scan clearing."""
-        self.table.rows = []
+        elif is_err(result):
+            self.table.rows = []
+            ui.notify(str(result.error), type="negative", position="top-right")
 
 
 def build_history_tab(tab: Tab, service: NFCService) -> HistoryTab:
