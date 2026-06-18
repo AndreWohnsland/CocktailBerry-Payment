@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from src.backend.core.errors import UserNotFound
 from src.backend.models.user import PaymentLog, User, UserCreate, UserUpdate
 from src.backend.service.user_service import UserService, get_user_service
 
@@ -23,7 +24,7 @@ def get_user(nfc_id: str, user_service: Annotated[UserService, Depends(get_user_
     """Get a user by NFC ID."""
     user = user_service.get_user_by_nfc(nfc_id)
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise UserNotFound(nfc_id)
     return user
 
 

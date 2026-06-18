@@ -1,9 +1,16 @@
 """Tests for user service layer."""
 
-import pytest
-from fastapi import HTTPException, status
+from decimal import Decimal
 
-from src.backend.constants import MIN_BALANCE
+import pytest
+
+from src.backend.core.errors import (
+    BalanceBelowMinimum,
+    DuplicateNfc,
+    InsufficientBalance,
+    UnderageBooking,
+    UserNotFound,
+)
 from src.backend.models.user import User, UserCreate, UserUpdate
 from src.backend.service.user_service import PaymentLogOptions, UserService
 
@@ -57,11 +64,10 @@ class TestCreateUser:
         """Test creating a user with duplicate NFC ID raises exception."""
         user_create = UserCreate(nfc_id=sample_user.nfc_id, is_adult=False)
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(DuplicateNfc) as exc_info:
             user_service.create_user(user_create)
 
-        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
-        assert "already exists" in exc_info.value.detail
+        assert exc_info.value.nfc_id == sample_user.nfc_id
 
     def test_create_user_minor(self, user_service: UserService) -> None:
         """Test creating a minor user."""
@@ -94,10 +100,10 @@ class TestUpdateUser:
         """Test updating non-existent user raises exception."""
         user_update = UserUpdate(is_adult=True)
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(UserNotFound) as exc_info:
             user_service.update_user("NONEXISTENT", user_update)
 
-        assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+        assert exc_info.value.nfc_id == "NONEXISTENT"
 
     def test_update_user_multiple_fields(self, user_service: UserService, sample_user: User) -> None:
         """Test updating multiple user fields at once."""
@@ -127,10 +133,10 @@ class TestDeleteUser:
 
     def test_delete_user_not_found(self, user_service: UserService) -> None:
         """Test deleting non-existent user raises exception."""
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(UserNotFound) as exc_info:
             user_service.delete_user("NONEXISTENT")
 
-        assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+        assert exc_info.value.nfc_id == "NONEXISTENT"
 
 
 class TestUpdateBalance:
@@ -139,39 +145,39 @@ class TestUpdateBalance:
     def test_update_balance_add(self, user_service: UserService, sample_user: User) -> None:
         """Test adding to user balance."""
         original_balance = sample_user.balance
-        user = user_service.update_balance(sample_user.nfc_id, 25.0)
+        user = user_service.update_balance(sample_user.nfc_id, Decimal("25.0"))
 
-        assert user.balance == original_balance + 25.0
+        assert user.balance == original_balance + Decimal("25.0")
 
         log = next(log for log in user_service.get_payment_logs(user.nfc_id) if log.nfc_id == user.nfc_id)
         assert log is not None
         assert log.description == PaymentLogOptions.TOP_UP
-        assert log.amount == 25.0  # noqa: PLR2004
+        assert log.amount == Decimal("25.0")
 
     def test_update_balance_subtract(self, user_service: UserService, sample_user: User) -> None:
         """Test subtracting from user balance."""
         original_balance = sample_user.balance
-        user = user_service.update_balance(sample_user.nfc_id, -10.0)
+        user = user_service.update_balance(sample_user.nfc_id, Decimal("-10.0"))
 
-        assert user.balance == original_balance - 10.0
+        assert user.balance == original_balance - Decimal("10.0")
 
     def test_update_balance_below_minimum(self, user_service: UserService, sample_user: User) -> None:
         """Test updating balance below minimum raises exception."""
-        # Try to subtract enough to go below MIN_BALANCE
-        amount = sample_user.balance + abs(MIN_BALANCE) + 100.0
+        # Try to subtract more than the balance, pushing it negative
+        amount = sample_user.balance + Decimal("100.0")
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(BalanceBelowMinimum) as exc_info:
             user_service.update_balance(sample_user.nfc_id, -amount)
 
-        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
-        assert "cannot go below" in exc_info.value.detail
+        assert exc_info.value.current == sample_user.balance
+        assert exc_info.value.requested == -amount
 
     def test_update_balance_user_not_found(self, user_service: UserService) -> None:
         """Test updating balance for non-existent user raises exception."""
-        with pytest.raises(HTTPException) as exc_info:
-            user_service.update_balance("NONEXISTENT", 10.0)
+        with pytest.raises(UserNotFound) as exc_info:
+            user_service.update_balance("NONEXISTENT", Decimal("10.0"))
 
-        assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+        assert exc_info.value.nfc_id == "NONEXISTENT"
 
 
 class TestBookCocktail:
@@ -180,7 +186,7 @@ class TestBookCocktail:
     def test_book_cocktail_success(self, user_service: UserService, sample_user: User) -> None:
         """Test booking a cocktail successfully."""
         original_balance = sample_user.balance
-        amount = 5.50
+        amount = Decimal("5.50")
 
         user = user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=False, name="cocktail")
 
@@ -189,7 +195,7 @@ class TestBookCocktail:
     def test_book_alcoholic_cocktail_adult(self, user_service: UserService, sample_user: User) -> None:
         """Test adult can book alcoholic cocktail."""
         original_balance = sample_user.balance
-        amount = 7.50
+        amount = Decimal("7.50")
 
         user = user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=True, name="cocktail")
 
@@ -197,33 +203,32 @@ class TestBookCocktail:
 
     def test_book_alcoholic_cocktail_minor(self, user_service: UserService, sample_minor: User) -> None:
         """Test minor cannot book alcoholic cocktail."""
-        with pytest.raises(HTTPException) as exc_info:
-            user_service.book_cocktail(sample_minor.nfc_id, 5.0, is_alcoholic=True, name="cocktail")
+        with pytest.raises(UnderageBooking) as exc_info:
+            user_service.book_cocktail(sample_minor.nfc_id, Decimal("5.0"), is_alcoholic=True, name="cocktail")
 
-        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
-        assert "underage" in exc_info.value.detail.lower()
+        assert exc_info.value.nfc_id == sample_minor.nfc_id
 
     def test_book_cocktail_insufficient_balance(self, user_service: UserService, sample_user: User) -> None:
         """Test booking cocktail with insufficient balance raises exception."""
-        amount = sample_user.balance + 100.0
+        amount = sample_user.balance + Decimal("100.0")
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(InsufficientBalance) as exc_info:
             user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=False, name="cocktail")
 
-        assert exc_info.value.status_code == status.HTTP_402_PAYMENT_REQUIRED
-        assert "Insufficient balance" in exc_info.value.detail
+        assert exc_info.value.current == sample_user.balance
+        assert exc_info.value.required == amount
 
     def test_book_cocktail_user_not_found(self, user_service: UserService) -> None:
         """Test booking cocktail for non-existent user raises exception."""
-        with pytest.raises(HTTPException) as exc_info:
-            user_service.book_cocktail("NONEXISTENT", 5.0, is_alcoholic=False, name="cocktail")
+        with pytest.raises(UserNotFound) as exc_info:
+            user_service.book_cocktail("NONEXISTENT", Decimal("5.0"), is_alcoholic=False, name="cocktail")
 
-        assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+        assert exc_info.value.nfc_id == "NONEXISTENT"
 
     def test_book_non_alcoholic_cocktail_minor(self, user_service: UserService, sample_minor: User) -> None:
         """Test minor can book non-alcoholic cocktail."""
         original_balance = sample_minor.balance
-        amount = 4.50
+        amount = Decimal("4.50")
 
         user = user_service.book_cocktail(sample_minor.nfc_id, amount, is_alcoholic=False, name="cocktail")
 
@@ -239,7 +244,7 @@ class TestBookCocktail:
 
     def test_book_cocktail_create_log(self, user_service: UserService, sample_user: User) -> None:
         """Test that booking a cocktail creates a payment log."""
-        amount = 5.0
+        amount = Decimal("5.0")
         name = "Mojito"
 
         user_service.book_cocktail(sample_user.nfc_id, amount, is_alcoholic=False, name=name)
@@ -257,8 +262,8 @@ class TestPaymentLogs:
     def test_get_payment_logs(self, user_service: UserService, sample_user: User) -> None:
         """Test retrieving payment logs for a user."""
         # Create some payment logs
-        user_service.log_payment_event(sample_user.nfc_id, 20.0, 20.0, "Account Top-up")
-        user_service.log_payment_event(sample_user.nfc_id, 5.0, 15.0, "Test Cocktail")
+        user_service.log_payment_event(sample_user.nfc_id, Decimal("20.0"), Decimal("20.0"), "Account Top-up")
+        user_service.log_payment_event(sample_user.nfc_id, Decimal("5.0"), Decimal("15.0"), "Test Cocktail")
 
         logs = user_service.get_payment_logs(sample_user.nfc_id)
         assert len(logs) >= 2  # noqa: PLR2004
@@ -273,8 +278,8 @@ class TestPaymentLogs:
     def test_get_all_payment_logs(self, user_service: UserService, sample_user: User, sample_minor: User) -> None:
         """Test retrieving all payment logs."""
         # Create some payment logs for both users
-        user_service.log_payment_event(sample_user.nfc_id, 15.0, 15.0, "Account Top-up")
-        user_service.log_payment_event(sample_minor.nfc_id, 10.0, 25.0, "Account Top-up")
+        user_service.log_payment_event(sample_user.nfc_id, Decimal("15.0"), Decimal("15.0"), "Account Top-up")
+        user_service.log_payment_event(sample_minor.nfc_id, Decimal("10.0"), Decimal("25.0"), "Account Top-up")
 
         all_logs = user_service.get_all_payment_logs()
         assert len(all_logs) >= 2  # noqa: PLR2004
